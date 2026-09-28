@@ -1,0 +1,5318 @@
+{
+  "name": "Pre Entrega 8",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {
+          "readStatus": "unread"
+        }
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -944,
+        -48
+      ],
+      "id": "2f6fed80-cfc2-4df9-8b8c-551c3cca64e9",
+      "name": "Gmail Trigger",
+      "retryOnFail": false,
+      "notesInFlow": false,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "[CREDENTIAL_ID]",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "¿Es cliente?\nBúsqueda por coincidencia de email",
+        "height": 112,
+        "width": 150,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -544,
+        -192
+      ],
+      "typeVersion": 1,
+      "id": "6e61bb0d-9e0a-4df6-8096-cc6de03f6172",
+      "name": "Sticky Note1"
+    },
+    {
+      "parameters": {
+        "content": "Detalle de productos y mora\n",
+        "height": 80,
+        "width": 182,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        384,
+        -416
+      ],
+      "typeVersion": 1,
+      "id": "870f0232-9428-4578-807a-2a53288899b1",
+      "name": "Sticky Note4"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "declare @IDCliente int;\nset @IDCliente = (select ID from Clientes where Email = '{{ $('SQL Trae info de BD').item.json.Email }}')\n\nSelect \na.ID,\nb.[Tarjeta de Credito],\ncoalesce(b.[Prestamo Personal], 0) AS [Prestamo Personal],\ncoalesce(b.[Prestamo Hipotecario], 0) AS [Prestamo Hipotecario],\ncoalesce(b.[Seguro para el Auto], 0) AS [Seguro para el Auto],\ncoalesce(b.[Seguro para la Vivienda], 0) AS [Seguro para la Vivienda],\ncoalesce(b.[Seguro Personal], 0) AS [Seguro Personal],\ncoalesce(b.[Plazo Fijo], 0) AS [Plazo Fijo],\ncoalesce(b.[Fondos Comunes de Inversion], 0) AS [Fondos Comunes de Inversion]\nfrom\nClientes as a, ConsumoProductos as b \nwhere a.ID = b.ID and a.ID = @IDCliente ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.2,
+      "position": [
+        1440,
+        -48
+      ],
+      "id": "586a119d-5a07-4c56-9801-11c547447041",
+      "name": "Microsoft SQL3",
+      "credentials": {
+        "microsoftSql": {
+          "id": "[CREDENTIAL_ID]",
+          "name": "Microsoft SQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "364a87ba-9a13-4c09-8be2-01d639fcf3f2",
+              "name": "Productos no solicitados",
+              "value": "={{ Object.keys($json)\n    .filter(key => key !== 'ID' && $json[key] === 0)\n    .join(', ') }}",
+              "type": "string"
+            },
+            {
+              "id": "00ffe369-1392-4aba-ade7-53abb0a9d749",
+              "name": "",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1664,
+        -48
+      ],
+      "id": "b2dfe118-21ac-43df-a696-f4858d6c32d1",
+      "name": "Edit Fields2"
+    },
+    {
+      "parameters": {
+        "content": "Consulta  todos los productos del cliente\n",
+        "height": 96,
+        "width": 182,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1392,
+        -176
+      ],
+      "typeVersion": 1,
+      "id": "7286fdb7-7042-43b6-81d8-4b1e75c34b2e",
+      "name": "Sticky Note5"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\n\nconst result = {};\n\nfor (const key of Object.keys(items[0].json)) {\n\n  if (key === 'ID Producto') {\n    result['Productos'] = items.length;\n    continue;\n  }\n\n  const values = items\n    .map(item => item.json[key])\n    .filter(value => typeof value === 'number');\n\n  if (values.length > 0) {\n\n    const promedio =\n      values.reduce((a, b) => a + b, 0) / values.length;\n\n    result[key] =\n      key === 'Promedio diferencia pagos'\n        ? Math.round(promedio * 100) / 100 // 2 decimales\n        : Math.round(promedio * 10) / 10;  // 1 decimal\n  }\n}\n\nreturn [{ json: result }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        -304
+      ],
+      "id": "079bbeaa-c336-4ffe-b883-a0435cd2496a",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "sendTo": "usuario@ejemplo.com",
+        "subject": "Solicitud de Revisión",
+        "message": "=Buenas tardes Gabriel\n{{ $('If ¿Es cliente?').item.json.Nombre }}, es cliente de la entidad y ha solicitado un producto. El sistema nos arrojó la siguiente información:\n\nCantidad de productos: {{ $('Code in JavaScript').item.json.Productos }}\nPromedio de mora en días: {{ $('Code in JavaScript').item.json[\"Promedio de Mora en dias\"] }}\nPromedio de monto adeudado mensual: {{ $('Code in JavaScript').item.json[\"Promedio diferencia pagos\"] }}\n\n\nNecesitamos saber si aprueba la revisión de este prospecto para que el sistema analice su perfil y determine si puede afrecerle un producto. \n\n¡Muchas gracias!\n\n",
+        "approvalOptions": {
+          "values": {
+            "approvalType": "double",
+            "approveLabel": "Aprueba",
+            "disapproveLabel": "Desaprueba"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1488,
+        -384
+      ],
+      "id": "025c6e84-b780-4788-8a07-00f57d46747d",
+      "name": "Send message and wait for response",
+      "webhookId":"[WEBHOOK_ID]",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "[CREDENTIAL_ID]",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "17ee8e11-68eb-44d5-b738-e50b39c11927",
+              "leftValue": "={{ $('Send message and wait for response').item.json.data.approved }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2288,
+        -384
+      ],
+      "id": "01e95006-d904-4927-a14e-1221655912c2",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "content": "Promedio cantidad de productos y mora",
+        "height": 80,
+        "width": 182,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        592,
+        -416
+      ],
+      "typeVersion": 1,
+      "id": "29525439-79ec-425f-b782-b9fc7cd9a1ec",
+      "name": "Sticky Note6"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "97215ee5-730e-41a9-9833-b792dd7d2564",
+              "leftValue": "={{ $json.Cliente }}",
+              "rightValue": "=Si",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "or"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        -64,
+        -48
+      ],
+      "id": "cb8d01a4-f370-4096-8720-35233ab09283",
+      "name": "If ¿Es cliente?"
+    },
+    {
+      "parameters": {
+        "content": "Filtros de clientes y no clientes por canal de ingreso",
+        "height": 96,
+        "width": 166,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2528,
+        144
+      ],
+      "typeVersion": 1,
+      "id": "cd9771f8-09d1-48e9-b503-868daf8284e3",
+      "name": "Sticky Note7"
+    },
+    {
+      "parameters": {
+        "content": "Usuario no elegible que necesita ser aprobado por una persona humana.",
+        "height": 112,
+        "width": 182,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1440,
+        -528
+      ],
+      "typeVersion": 1,
+      "id": "399c30b9-3ccc-4cdc-816b-68722de0266c",
+      "name": "Sticky Note8"
+    },
+    {
+      "parameters": {
+        "content": "Muestra los productos que no tiene el cliente",
+        "height": 96,
+        "width": 182,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1616,
+        -176
+      ],
+      "typeVersion": 1,
+      "id": "b8707798-cda7-4390-9074-922bb447ea1d",
+      "name": "Sticky Note9"
+    },
+    {
+      "parameters": {
+        "content": "Regla de negocio: Si el usuario tiene una mora inferior a los 10 días en el pago y menos de $70.000 de deuda es elegible.",
+        "height": 192,
+        "width": 182,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        800,
+        -528
+      ],
+      "typeVersion": 1,
+      "id": "c6c3346d-ae75-4510-8aec-bebafec21e99",
+      "name": "Sticky Note10"
+    },
+    {
+      "parameters": {
+        "content": "¿Aprueba la solicitud?",
+        "height": 80,
+        "width": 150,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2256,
+        -496
+      ],
+      "typeVersion": 1,
+      "id": "8cc42995-4592-4f33-bf4b-9f3eeacf8757",
+      "name": "Sticky Note11"
+    },
+    {
+      "parameters": {
+        "sendTo": "=usuario@ejemplo.com",
+        "subject": "=Respuesta a su consulta",
+        "emailType": "text",
+        "message": "=Hola {{ $('SQL Trae info de BD').item.json.Nombre }}, actualmente no contamos con un producto para ofrecerte. \n\n¡Muchas gracias por tu consulta!\n\nSaludos cordiales,\n\nMartín Lopez",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2832,
+        -832
+      ],
+      "id": "5658c5cc-4403-45dd-8ac3-37cc5bb78e92",
+      "name": "Send a message",
+      "webhookId":"[WEBHOOK_ID]",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "[CREDENTIAL_ID]",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "Solicitud rechazada por no cumplir con el perfil adecuado.",
+        "height": 112,
+        "width": 160,
+        "color": "#790003"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        3488,
+        -832
+      ],
+      "typeVersion": 1,
+      "id": "514b24cd-3d5d-4a78-a030-5c4016a51562",
+      "name": "Sticky Note12"
+    },
+    {
+      "parameters": {
+        "content": "Email al usuario para informarle que no puede acceder al producto.",
+        "height": 112,
+        "width": 182,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2784,
+        -976
+      ],
+      "typeVersion": 1,
+      "id": "3e91a9df-24c3-467c-9be0-3a99e0d11eca",
+      "name": "Sticky Note13"
+    },
+    {
+      "parameters": {
+        "content": "Se registra la consulta con los datos recuperados del email\n",
+        "height": 112,
+        "width": 182,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -336,
+        -192
+      ],
+      "typeVersion": 1,
+      "id": "e63ea289-c1e3-462b-994d-2394a04c50f0",
+      "name": "Sticky Note14"
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "sendTo": "usuario@ejemplo.com",
+        "subject": "Solicitud de Revisión",
+        "message": "=Buenas tardes Gabriel\n{{ $json.Nombre }} no es cliente de la entidad y ha solicitado un producto. Necesitamos saber si aprueba la revisión de este prospecto para que el sistema analice su perfil y determine si puede afrecerle un producto. ",
+        "approvalOptions": {
+          "values": {
+            "approvalType": "double",
+            "approveLabel": "Aprueba",
+            "disapproveLabel": "Desaprueba"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1232,
+        304
+      ],
+      "id": "04f2c00c-6051-4fe2-9381-906788d5dbcc",
+      "name": "Send message and wait for response1",
+      "webhookId":"[WEBHOOK_ID]",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "[CREDENTIAL_ID]",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "Consulta aprobación por ser no cliente\n",
+        "height": 96,
+        "width": 166,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1200,
+        176
+      ],
+      "typeVersion": 1,
+      "id": "8e220c85-2d28-4c1e-acc6-43bd7a675127",
+      "name": "Sticky Note15"
+    },
+    {
+      "parameters": {
+        "formTitle": "Solicitud de Producto",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "¿Qué producto desea solicitar?",
+              "fieldType": "dropdown",
+              "fieldOptions": {
+                "values": [
+                  {
+                    "option": "Tarjeta de Crédito"
+                  },
+                  {
+                    "option": "Préstamos Personal"
+                  },
+                  {
+                    "option": "Préstamo Hipotecario"
+                  },
+                  {
+                    "option": "Seguro para el Auto"
+                  },
+                  {
+                    "option": "Seguro para la Vivienda"
+                  },
+                  {
+                    "option": "Seguro Personal"
+                  }
+                ]
+              },
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "¿Cúal es el monto límite de tarjeta o monto solicitado para un préstamo?",
+              "fieldType": "number"
+            },
+            {
+              "fieldLabel": "Nombre",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Apellido",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "DNI",
+              "fieldType": "number",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Email",
+              "fieldType": "email",
+              "requiredField": true
+            },
+            {
+              "fieldLabel": "Comentarios",
+              "fieldType": "textarea"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        -944,
+        336
+      ],
+      "id": "20097a62-5e9b-49bb-aa87-94458bc2869f",
+      "name": "On form submission1",
+      "webhookId":"[WEBHOOK_ID]"
+    },
+    {
+      "parameters": {
+        "content": "## ¿Es cliente?\nTomo la información y busco coincidencias en la base de datos de clientes. Si hay coincidencias me indica en cual (email, DNI) mostrando que es cliente y sino, me indica que no es cliente.",
+        "height": 352,
+        "width": 182,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -768,
+        512
+      ],
+      "typeVersion": 1,
+      "id": "1c44a72e-7a6c-40b0-9d89-ce30ce0f60e6",
+      "name": "Sticky Note22"
+    },
+    {
+      "parameters": {
+        "content": "El usuario completa un formulario de solicitud de producto.",
+        "height": 80,
+        "width": 272,
+        "color": "#FFFF00"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1440,
+        352
+      ],
+      "typeVersion": 1,
+      "id": "eef3b1e2-b619-489f-bf37-a4668d16b56b",
+      "name": "Sticky Note23"
+    },
+    {
+      "parameters": {
+        "content": "Se recibe un email de un usuario solicitando un producto.",
+        "height": 80,
+        "width": 272,
+        "color": "#FFFF00"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -1440,
+        -32
+      ],
+      "typeVersion": 1,
+      "id": "d2c9a027-0243-4319-8f45-ff82141dd142",
+      "name": "Sticky Note24"
+    },
+    {
+      "parameters": {
+        "content": "## Registro de consulta\n\nTomo la información y la guardo en la tabla RegistroConsultas",
+        "height": 176,
+        "width": 182,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -544,
+        512
+      ],
+      "typeVersion": 1,
+      "id": "3f6376e5-ff0e-476c-8d9a-f9a002d42c5b",
+      "name": "Sticky Note"
+    },
+    {
+      "parameters": {
+        "content": "## If -> Datos\n\nSi es cliente devuelve datos precisos y si no es cliente, devuelve los datos que puede tomar del email.",
+        "height": 208,
+        "width": 182,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -96,
+        112
+      ],
+      "typeVersion": 1,
+      "id": "3d4df26c-32d6-4fdd-8139-91a9c36de8ca",
+      "name": "Sticky Note25"
+    },
+    {
+      "parameters": {
+        "content": "No Cliente\nSe registra el envío de autorización\n",
+        "height": 96,
+        "width": 150,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        992,
+        176
+      ],
+      "typeVersion": 1,
+      "id": "909d4426-b32b-4ed0-90ff-86a68e3f37f7",
+      "name": "Sticky Note19"
+    },
+    {
+      "parameters": {
+        "content": "Si no se aprueba la solicitud",
+        "height": 96,
+        "width": 182,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1408,
+        176
+      ],
+      "typeVersion": 1,
+      "id": "7bc49509-eaea-4c99-af99-3bb17c210c3f",
+      "name": "Sticky Note26"
+    },
+    {
+      "parameters": {
+        "content": "Se registra el resultado de la regla de negocio.",
+        "height": 96,
+        "width": 198,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1008,
+        -512
+      ],
+      "typeVersion": 1,
+      "id": "733acdec-8963-4670-b9a9-fd3d43354b3b",
+      "name": "Sticky Note20"
+    },
+    {
+      "parameters": {
+        "content": "Trae la información de la base de clientes cuando el email certificado es el mismo.\n",
+        "height": 144,
+        "width": 182,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        176,
+        -480
+      ],
+      "typeVersion": 1,
+      "id": "44edc36e-05ad-4aef-a364-07426d22059a",
+      "name": "Sticky Note27"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "select Nombre, Apellido, DNI, Email, '{{ $json.Canal }}' as Canal, '{{ $json.Fecha }}' as 'Fecha', '{{ $json.Asunto }}' as Asunto, '{{ $json.Mensaje }}' as Mensaje, 'Email' as 'Validado por'\nfrom Clientes\nwhere Email = '{{ $json.Email }}' or DNI = '{{ $json.DNI }}'\n\n\n\n\n\n\n",
+        "options": {
+          "queryReplacement": "="
+        }
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.2,
+      "position": [
+        224,
+        -304
+      ],
+      "id": "f53f9c12-169c-40c9-96af-2b0cc1c7746f",
+      "name": "SQL Trae info de BD",
+      "credentials": {
+        "microsoftSql": {
+          "id": "[CREDENTIAL_ID]",
+          "name": "Microsoft SQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE [dbo].[RegistroSolicitudes]\n   SET [Solicitud de aprobacion enviada] = CONVERT(VARCHAR(8), GETDATE(), 112)\n   WHERE Email = '{{ $json.Email }}' and Nombre = '{{ $json.Nombre }}' and Canal = '{{ $json.Canal }}' and Fecha = '{{ $json.Fecha }}'",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.2,
+      "position": [
+        1008,
+        304
+      ],
+      "id": "9542b21f-b4a9-4292-97dd-ed02f09e9829",
+      "name": "SQL Inserta envío de autorización en la BD",
+      "credentials": {
+        "microsoftSql": {
+          "id": "[CREDENTIAL_ID]",
+          "name": "Microsoft SQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE [dbo].[RegistroSolicitudes]\nSET [Solicitud de aprobacion] = '{{ $json.data.approved ? \"Aprobado\" : \"Desaprobado\" }}'\nWHERE Email = '{{ $(\"If ¿Es cliente?\").item.json.Email }}'\n  AND Nombre = '{{ $(\"If ¿Es cliente?\").item.json.Nombre }}'\n  AND Canal = '{{ $(\"If ¿Es cliente?\").item.json.Canal }}'\n  AND Fecha = '{{ $(\"If ¿Es cliente?\").item.json.Fecha }}'",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.2,
+      "position": [
+        1680,
+        304
+      ],
+      "id": "4c555007-79fc-4a9d-8e0e-db4ec7b5bca7",
+      "name": "SQL Inserta respuesta en la BD",
+      "credentials": {
+        "microsoftSql": {
+          "id": "[CREDENTIAL_ID]",
+          "name": "Microsoft SQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "Quita símbolos del campo From para tomar solo el nombre.",
+        "height": 112,
+        "width": 166,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        -768,
+        -192
+      ],
+      "typeVersion": 1,
+      "id": "647e314f-aa58-4bbc-b68f-005f78083c7d",
+      "name": "Sticky Note28"
+    },
+    {
+      "parameters": {
+        "jsCode": "const from = $json.From || '';\n\nconst email = from.match(/<([^>]+)>/)?.[1] || '';\n\nconst nombre = (from.match(/^(.*?)\\s*<[^>]+>/)?.[1] || from)\n  .replace(/^[\"']+|[\"']+$/g, '')\n  .trim();\n\nreturn [{\njson: {\nSubject: $json.Subject,\nSnippet: $json.snippet,\nNombre: nombre,\nEmail: email\n}\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -736,
+        -48
+      ],
+      "id": "138d6436-776b-4be7-8b40-0ab93438cb3c",
+      "name": "Email - Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n    CASE\n        WHEN EXISTS (\n            SELECT 1\n            FROM Clientes\n            WHERE Email = '{{ $json.Email }}'\n        )\n        THEN 'Si'\n        ELSE 'No'\n    END AS Cliente,\n\n    '{{ $json.Nombre }}' as Nombre,\n    '{{ $json.Email }}' AS Email,\n    '{{ $json.Subject }}' as 'Asunto',\n    '{{ $json.Snippet }}' AS Mensaje,\n    'Email' AS Canal,\n    GETDATE() AS Fecha\n\n\n\n\n\n",
+        "options": {
+          "queryReplacement": "="
+        }
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.2,
+      "position": [
+        -512,
+        -48
+      ],
+      "id": "6e6721b0-fae8-4588-a6fe-1fffe3ef60ca",
+      "name": "Email - SQL Coincidencia por email",
+      "credentials": {
+        "microsoftSql": {
+          "id": "[CREDENTIAL_ID]",
+          "name": "Microsoft SQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "table": "RegistroSolicitudes",
+        "columns": "Nombre, Apellido, Email, Canal, Cliente, Mensaje, Fecha"
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.2,
+      "position": [
+        -288,
+        -48
+      ],
+      "id": "c5ddeb45-c637-48dd-ba1f-79c2b26cc194",
+      "name": "Email - SQL Registro de Consulta",
+      "credentials": {
+        "microsoftSql": {
+          "id": "[CREDENTIAL_ID]",
+          "name": "Microsoft SQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT\n    CASE\n        WHEN EXISTS (\n            SELECT 1\n            FROM Clientes\n            WHERE Email = '{{ $json.Email }}'\n               OR DNI = '{{ $json.DNI }}'\n        )\n        THEN 'Si'\n        ELSE 'No'\n    END AS Cliente,\n\n    CASE\n        WHEN EXISTS (\n            SELECT 1\n            FROM Clientes\n            WHERE Email = '{{ $json.Email }}'\n        )\n        THEN 'Email'\n        WHEN EXISTS (\n            SELECT 1\n            FROM Clientes\n            WHERE DNI = '{{ $json.DNI }}'\n        )\n        THEN 'DNI'\n        ELSE 'Ninguno'\n    END AS Coincidencia,\n\n    '{{ $json.Nombre }}' as Nombre,\n    '{{ $json.Apellido }}' as Apellido,\n    '{{ $json.DNI }}' as DNI,\n    '{{ $json.Email }}' AS Email,\n    '{{ $json.Comentarios }}' AS Mensaje,\n    '{{ $json[\"¿Qué producto desea solicitar?\"] }}' as 'Producto Solicitado',\n    '{{ $json[\"¿Cúal es el monto límite de tarjeta o monto solicitado para un préstamo?\"] }}' as 'Monto solicitado',\n    'Formulario Web' AS Canal,\n    GETDATE() AS Fecha",
+        "options": {
+          "queryReplacement": "="
+        }
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.2,
+      "position": [
+        -720,
+        336
+      ],
+      "id": "ecaf23d0-f27d-4a99-8bae-cedd0bdeda76",
+      "name": "Form - SQL Coincidencia por email o DNI",
+      "credentials": {
+        "microsoftSql": {
+          "id": "[CREDENTIAL_ID]",
+          "name": "Microsoft SQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "table": "RegistroSolicitudes",
+        "columns": "Nombre, Apellido, Email, Canal, Cliente, Mensaje, Fecha"
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.2,
+      "position": [
+        -496,
+        336
+      ],
+      "id": "8dc2c1f8-99a7-4f61-8225-a8fc0481600a",
+      "name": "Form - SQL Registro de Consulta",
+      "credentials": {
+        "microsoftSql": {
+          "id": "[CREDENTIAL_ID]",
+          "name": "Microsoft SQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "c333fd9b-ee18-45f7-8717-7c070ef78788",
+              "leftValue": "={{ $json.Productos }}",
+              "rightValue": 3,
+              "operator": {
+                "type": "number",
+                "operation": "gte"
+              }
+            },
+            {
+              "id": "2be0404f-b5fd-45de-8da4-b272d3d2e557",
+              "leftValue": "={{ $json[\"Promedio de Mora en dias\"] }}",
+              "rightValue": 10,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            },
+            {
+              "id": "42469ee1-32c1-4d6a-93fe-ee933b799b12",
+              "leftValue": "={{ $json[\"Promedio diferencia pagos\"] }}",
+              "rightValue": 50000,
+              "operator": {
+                "type": "number",
+                "operation": "lt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        848,
+        -304
+      ],
+      "id": "a39c0500-d270-4eea-bf5f-79cfffd96bf0",
+      "name": "If = Regla de negocio ok?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE [dbo].[RegistroSolicitudes]\n   SET [Pasa regla de negocio] = 'Si. Tiene {{ $json.Productos }} productos, paga en promedio {{ $json[\"Promedio de Mora en dias\"] }}  y  tiene una deuda promedio mensual de {{ $json[\"Promedio diferencia pagos\"] }} pesos.'\n   WHERE Email = '{{ $('If ¿Es cliente?').item.json.Email }}' and Nombre = '{{ $('If ¿Es cliente?').item.json.Nombre }}' and Canal = '{{ $('If ¿Es cliente?').item.json.Canal }}' and Fecha = '{{ $('If ¿Es cliente?').item.json.Fecha }}'",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.2,
+      "position": [
+        1232,
+        -48
+      ],
+      "id": "4ebdd13f-d9df-491f-9f7e-a0b95d83af9e",
+      "name": "SQL - Registro análisis regla de negocio",
+      "credentials": {
+        "microsoftSql": {
+          "id": "[CREDENTIAL_ID]",
+          "name": "Microsoft SQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "Registra el resultado de la regla de negocio\n",
+        "height": 96,
+        "width": 182,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1184,
+        -176
+      ],
+      "typeVersion": 1,
+      "id": "6fc8dbf0-d542-4b45-b1a3-f5768f89b565",
+      "name": "Sticky Note31"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "3a3696f8-cd1b-4b2a-8be8-f918d5252ba2",
+              "leftValue": "={{ $json.data.approved }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1456,
+        304
+      ],
+      "id": "5d41c70e-458e-449e-bcc7-87b6931f174f",
+      "name": "If1"
+    },
+    {
+      "parameters": {
+        "content": "No Cliente\nSe registra la respuesta",
+        "height": 96,
+        "width": 182,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1632,
+        176
+      ],
+      "typeVersion": 1,
+      "id": "330c194a-f142-42c1-b577-8236183b6a8a",
+      "name": "Sticky Note33"
+    },
+    {
+      "parameters": {
+        "sendTo": "usuario@ejemplo.com",
+        "subject": "Respuesta a su consulta",
+        "emailType": "text",
+        "message": "=¡Buenas tardes {{ $('If ¿Es cliente?').item.json.Nombre }}!\n\nLe informamos que no es posible otorgarle en este momento el producto solicitado.\n\nSaludos cordiales,\n\nBanco Gaby",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1936,
+        736
+      ],
+      "id": "70bf6334-fc25-43f6-b935-b071237f292b",
+      "name": "Send a message1",
+      "webhookId":"[WEBHOOK_ID]",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "[CREDENTIAL_ID]",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "03694647-a2dd-4e51-a3e8-598ee732c65a",
+              "name": "Nombre",
+              "value": "={{ $('SQL Trae info de BD').item.json.Nombre }}",
+              "type": "string"
+            },
+            {
+              "id": "ee32f7a7-7d40-46fd-9141-06049e0d2176",
+              "name": "Apellido",
+              "value": "={{ $('SQL Trae info de BD').item.json.Apellido }}",
+              "type": "string"
+            },
+            {
+              "id": "5effba47-3631-4aef-82c6-2be1797e2915",
+              "name": "DNI",
+              "value": "={{ $('SQL Trae info de BD').item.json.DNI }}",
+              "type": "string"
+            },
+            {
+              "id": "b4c392cd-51a2-4c41-a69d-883071560ccd",
+              "name": "Email",
+              "value": "={{ $('SQL Trae info de BD').item.json.Email }}",
+              "type": "string"
+            },
+            {
+              "id": "23fc81e0-4e65-47b6-8cdb-0dfae97f3d65",
+              "name": "Cliente",
+              "value": "={{ $('If ¿Es cliente?').item.json.Cliente }}",
+              "type": "string"
+            },
+            {
+              "id": "dba08598-c1d5-44e4-95af-e9b3d3acbfd6",
+              "name": "Canal",
+              "value": "={{ $('SQL Trae info de BD').item.json.Canal }}",
+              "type": "string"
+            },
+            {
+              "id": "8f07f512-168d-48f9-8b46-53a89ae5c929",
+              "name": "Productos no solicitados",
+              "value": "={{ $json[\"Productos no solicitados\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "530e610b-c29f-4fbc-bc4c-1ab9bb470b18",
+              "name": "Cantidad de Productos",
+              "value": "={{ $('Code in JavaScript').item.json.Productos }}",
+              "type": "number"
+            },
+            {
+              "id": "6f3f9311-c5ac-4447-96bc-3840c441f93a",
+              "name": "Promedio de Mora en dias",
+              "value": "={{ $('Code in JavaScript').item.json[\"Promedio de Mora en dias\"] }}",
+              "type": "number"
+            },
+            {
+              "id": "e27e91d6-b15e-4cce-917a-a69fd0076be9",
+              "name": "Promedio diferencia pagos",
+              "value": "={{ $('Code in JavaScript').item.json[\"Promedio diferencia pagos\"] }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        3040,
+        -112
+      ],
+      "id": "0d68a31b-5e63-4c9a-805e-d7b24e2080ae",
+      "name": "Edit Fields - Formulario Web"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ee32f7a7-7d40-46fd-9141-06049e0d2176",
+              "name": "Nombre",
+              "value": "={{ $('If ¿Es cliente?').item.json.Nombre }}",
+              "type": "string"
+            },
+            {
+              "id": "b4c392cd-51a2-4c41-a69d-883071560ccd",
+              "name": "Email",
+              "value": "={{ $('If ¿Es cliente?').item.json.Email }}",
+              "type": "string"
+            },
+            {
+              "id": "76a71146-9e54-4935-82ba-f956dfdadb86",
+              "name": "Asunto",
+              "value": "={{ $('If ¿Es cliente?').item.json.Asunto }}",
+              "type": "string"
+            },
+            {
+              "id": "e5eb0772-7a9b-4c47-a612-ac99f6626078",
+              "name": "Mensaje",
+              "value": "={{ $('If ¿Es cliente?').item.json.Mensaje }}",
+              "type": "string"
+            },
+            {
+              "id": "718f1b64-4e69-43b5-afc1-a634a9dda7f8",
+              "name": "Canal",
+              "value": "={{ $('If ¿Es cliente?').item.json.Canal }}",
+              "type": "string"
+            },
+            {
+              "id": "23fc81e0-4e65-47b6-8cdb-0dfae97f3d65",
+              "name": "Cliente",
+              "value": "={{ $('Email - SQL Coincidencia por email').item.json.Cliente }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        3040,
+        112
+      ],
+      "id": "ef251408-cfd7-4103-8fab-cca3d889733d",
+      "name": "Edit Fields - Email"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE [dbo].[RegistroSolicitudes]\n   SET [Solicitud de aprobacion enviada] = CONVERT(VARCHAR(8), GETDATE(), 112)\n   WHERE Email = '{{ $('If ¿Es cliente?').item.json.Email }}' and Nombre = '{{ $('If ¿Es cliente?').item.json.Nombre }}' and Canal = '{{ $('If ¿Es cliente?').item.json.Canal }}' and Fecha = '{{ $('If ¿Es cliente?').item.json.Fecha }}'",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.2,
+      "position": [
+        1280,
+        -384
+      ],
+      "id": "3bc8ef3d-c1ff-4858-b89e-e0d5ff6d77a5",
+      "name": "SQL - Cliente - Inserta envío de autorización en la BD",
+      "credentials": {
+        "microsoftSql": {
+          "id": "[CREDENTIAL_ID]",
+          "name": "Microsoft SQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE [dbo].[RegistroSolicitudes]\n   SET [Pasa regla de negocio] = 'No. Tiene {{ $json.Productos }} productos, paga en promedio  {{ $json[\"Promedio de Mora en dias\"] }}  y  tiene una deuda promedio mensual de  {{ $json[\"Promedio diferencia pagos\"] }} pesos.'\n   WHERE Email = '{{ $('If ¿Es cliente?').item.json.Email }}' and Nombre = '{{ $('If ¿Es cliente?').item.json.Nombre }}' and Canal = '{{ $('If ¿Es cliente?').item.json.Canal }}' and Fecha = '{{ $('If ¿Es cliente?').item.json.Fecha }}'",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.2,
+      "position": [
+        1056,
+        -384
+      ],
+      "id": "d5e49f31-ac6b-4950-a3d5-da271f0ba1da",
+      "name": "SQL - Cliente - Registra la solicitud",
+      "credentials": {
+        "microsoftSql": {
+          "id": "[CREDENTIAL_ID]",
+          "name": "Microsoft SQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE [dbo].[RegistroSolicitudes]\nSET [Solicitud de aprobacion] = '{{ $json.data.approved ? \"Aprobado\" : \"Desaprobado\" }}'\nWHERE Email = '{{ $(\"If ¿Es cliente?\").item.json.Email }}'\n  AND Nombre = '{{ $(\"If ¿Es cliente?\").item.json.Nombre }}'\n  AND Canal = '{{ $(\"If ¿Es cliente?\").item.json.Canal }}'\n  AND Fecha = '{{ $(\"If ¿Es cliente?\").item.json.Fecha }}'",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.2,
+      "position": [
+        1696,
+        -384
+      ],
+      "id": "ca23949b-818d-45cb-b166-469fd1f4d654",
+      "name": "SQL - Cliente - Registra respuesta",
+      "credentials": {
+        "microsoftSql": {
+          "id": "[CREDENTIAL_ID]",
+          "name": "Microsoft SQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE [dbo].[RegistroSolicitudes]\nSET [Estado de solicitud] = 'No Aprobada'\nWHERE Email = '{{ $(\"If ¿Es cliente?\").item.json.Email }}'\n  AND Nombre = '{{ $(\"If ¿Es cliente?\").item.json.Nombre }}'\n  AND Canal = '{{ $(\"If ¿Es cliente?\").item.json.Canal }}'\n  AND Fecha = '{{ $(\"If ¿Es cliente?\").item.json.Fecha }}'",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.2,
+      "position": [
+        2624,
+        -832
+      ],
+      "id": "dd38e6e6-5fed-43f2-87af-5765af0f69ff",
+      "name": "SQL - Cliente - Registra el rechazo",
+      "credentials": {
+        "microsoftSql": {
+          "id": "[CREDENTIAL_ID]",
+          "name": "Microsoft SQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "Se registra el rechazo a la solicitud del usuario",
+        "height": 96,
+        "width": 182,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2576,
+        -960
+      ],
+      "typeVersion": 1,
+      "id": "8da98e79-be09-49f6-b308-3ef8e2ed7863",
+      "name": "Sticky Note18"
+    },
+    {
+      "parameters": {
+        "content": "Se registra la fecha de envío de la solicitud de autorización.",
+        "height": 112,
+        "width": 182,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1232,
+        -528
+      ],
+      "typeVersion": 1,
+      "id": "8168870c-640d-458a-bd47-13d7b52f1465",
+      "name": "Sticky Note34"
+    },
+    {
+      "parameters": {
+        "content": "Se registra la respuesta",
+        "height": 80,
+        "width": 182,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1648,
+        -496
+      ],
+      "typeVersion": 1,
+      "id": "abba5d6b-f3ab-4621-991e-c30f26987042",
+      "name": "Sticky Note35"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "c914992f-8bc1-426b-a2e6-6067e22705ce",
+              "leftValue": "={{ $('If ¿Es cliente?').item.json.Canal }}",
+              "rightValue": "=Formulario Web",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2560,
+        -48
+      ],
+      "id": "b0e3ffc9-2b1e-4cb0-8606-08fc351df0de",
+      "name": "If - Cliente - Ingresó por Formulario Web"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "0ed28cb8-e55e-41c2-a29d-2777cc860665",
+              "leftValue": "={{ $('If ¿Es cliente?').item.json.Canal }}",
+              "rightValue": "=Email",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2560,
+        304
+      ],
+      "id": "297ad525-41e6-4d88-a92d-7972c2f4879b",
+      "name": "If - No Cliente - Ingresó por Email"
+    },
+    {
+      "parameters": {
+        "jsCode": "const texto = $json.text;\n\n// Busca cada persona\nconst regexPersona = /([A-Za-zÁÉÍÓÚáéíóúÑñ\\s]+),\\s*DNI\\s*([\\d.]+),\\s*correo electrónico\\s*([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,})/g;\n\nconst coincidencias = [...texto.matchAll(regexPersona)];\n\nconst resultados = [];\n\nfor (let i = 0; i < coincidencias.length; i++) {\n\n  const actual = coincidencias[i];\n\n  const inicio = actual.index;\n\n  const fin = i < coincidencias.length - 1\n    ? coincidencias[i + 1].index\n    : texto.length;\n\n  const bloque = texto.slice(inicio, fin);\n\n  const extraer = (desde, hasta) => {\n    if (hasta === \"$\") {\n      const re = new RegExp(`${desde}\\\\s*([\\\\s\\\\S]*)`, \"i\");\n      const m = bloque.match(re);\n\n      return m\n        ? m[1].replace(/\\s+/g, \" \").trim()\n        : \"\";\n    }\n\n    const re = new RegExp(\n      `${desde}\\\\s*([\\\\s\\\\S]*?)\\\\s*${hasta}`,\n      \"i\"\n    );\n\n    const m = bloque.match(re);\n\n    return m\n      ? m[1].replace(/\\s+/g, \" \").trim()\n      : \"\";\n  };\n\n  resultados.push({\n    Fecha: new Date().toISOString().slice(0,10).replace(/-/g, ''),\n    Nombre: actual[1]\n      .replace(/Datos Personales/g, \"\")\n      .trim()\n      .split(\"\\n\")\n      .pop()\n      .trim(),\n\n    DNI: Number(actual[2].replace(/\\./g, '')),\n\n    Email: actual[3].trim(),\n\n    \"Situacion laboral\": extraer(\n      \"Situación Laboral e Ingresos\",\n      \"Patrimonio\"\n    ),\n\n    Patrimonio: extraer(\n      \"Patrimonio\",\n      \"Pasivos o Deudas\"\n    ),\n\n    \"Pasivos y deudas\": extraer(\n      \"Pasivos o Deudas\",\n      \"Historial Crediticio\"\n    ),\n\n    \"Historial crediticio\": extraer(\n      \"Historial Crediticio\",\n      \"Flujo de Caja Personal\"\n    ),\n\n    \"Flujo de caja\": extraer(\n      \"Flujo de Caja Personal\",\n      \"Indicadores Financieros\"\n    ),\n\n    \"Indicadores financieros\": extraer(\n      \"Indicadores Financieros\",\n      \"Conclusión\"\n    ),\n\n    Conclusion: extraer(\n      \"Conclusión\",\n      \"$\"\n    )\n  });\n}\n\nreturn resultados.map(item => ({\n  json: item\n}));"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4160,
+        1488
+      ],
+      "id": "01dea3b8-5ca2-4eed-8cfe-34d8f7965bc0",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "content": "Conversión a formato JSON",
+        "height": 96,
+        "width": 150,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        4128,
+        1664
+      ],
+      "typeVersion": 1,
+      "id": "530de3ab-19c9-484d-a5c7-5abb80121822",
+      "name": "Sticky Note36"
+    },
+    {
+      "parameters": {
+        "content": "Inserción en la base de datos para futuras consultas",
+        "height": 112,
+        "width": 166,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        4352,
+        1680
+      ],
+      "typeVersion": 1,
+      "id": "52038c26-7227-42bb-b04a-beecb6f3b428",
+      "name": "Sticky Note37"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "1a9ca57b-4320-4e1a-9d0a-80ec21f47789",
+              "leftValue": "={{ $json[\"Informe Crediticio\"] }}",
+              "rightValue": "Si",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        3584,
+        112
+      ],
+      "id": "d5d19409-c809-42ae-8cab-6d4476893a24",
+      "name": "If Email - Informe Crediticio"
+    },
+    {
+      "parameters": {
+        "content": "Solicitud rechazada por no cumplir con el perfil adecuado.",
+        "height": 112,
+        "width": 150,
+        "color": "#790003"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2656,
+        736
+      ],
+      "typeVersion": 1,
+      "id": "9c5bc9aa-c5cb-49bf-b85e-443b62e78a81",
+      "name": "Sticky Note39"
+    },
+    {
+      "parameters": {
+        "content": "##  HUMAN IN THE LOOP\n",
+        "height": 80,
+        "width": 150,
+        "color": "#E276DA"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1200,
+        512
+      ],
+      "typeVersion": 1,
+      "id": "95a43c22-3e48-4c4b-bf58-12e03ad2e4e0",
+      "name": "Sticky Note3"
+    },
+    {
+      "parameters": {
+        "content": "##  HUMAN IN THE LOOP\n",
+        "height": 80,
+        "width": 150,
+        "color": "#E276DA"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1456,
+        -640
+      ],
+      "typeVersion": 1,
+      "id": "f2d8a154-79b9-4686-b883-82fa7b97812e",
+      "name": "Sticky Note40"
+    },
+    {
+      "parameters": {
+        "content": "##  HUMAN IN THE LOOP\n",
+        "height": 80,
+        "width": 166,
+        "color": "#E276DA"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        6416,
+        784
+      ],
+      "typeVersion": 1,
+      "id": "94efa2cc-d07b-4d2c-8f0a-d2c48fd8179b",
+      "name": "Sticky Note41"
+    },
+    {
+      "parameters": {
+        "content": "Consulta si hay información de informes financieros guardados en la base de datos referidos al prospecto.",
+        "height": 224,
+        "width": 166,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        3280,
+        -368
+      ],
+      "typeVersion": 1,
+      "id": "debd6b14-01b1-4e91-8b0d-ddffb628f198",
+      "name": "Sticky Note42"
+    },
+    {
+      "parameters": {
+        "content": "Si cuenta con información crediticia, se envía a un agente sin RAG. Sino, se envía a un agente con RAG.",
+        "height": 192,
+        "width": 182,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        3536,
+        -336
+      ],
+      "typeVersion": 1,
+      "id": "a955ccea-e389-49b9-bbb9-12d75092b1bb",
+      "name": "Sticky Note43"
+    },
+    {
+      "parameters": {
+        "content": "Ordena la información",
+        "height": 80,
+        "width": 150,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        3008,
+        -224
+      ],
+      "typeVersion": 1,
+      "id": "5df60b78-01b2-4a68-875f-1dae4c20ebd6",
+      "name": "Sticky Note44"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "IF EXISTS (\n    SELECT 1\n    FROM InformesCrediticios\n    WHERE Email = '{{ $json.Email }}'\n)\nBEGIN\n    SELECT\n        CONVERT(VARCHAR(8), CAST(Fecha AS DATETIME), 112) AS Fecha,\n        DNI,\n        Email,\n        [Situación laboral],\n        Patrimonio,\n        [Pasivos y deudas],\n        [Historial crediticio],\n        [Flujo de caja],\n        [Indicadores financieros],\n        Conclusion\n    FROM InformesCrediticios\n    WHERE Email = '{{ $json.Email }}' or DNI = {{ $json.DNI }}\nEND\nELSE\nBEGIN\n  SELECT\n'No' AS [Informe Crediticio],\n'{{ $json.Email }}' AS Email\n    \nEND",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.2,
+      "position": [
+        3312,
+        -112
+      ],
+      "id": "11a77d07-0b2d-49c5-85d0-180e67c9a0cb",
+      "name": "SQL - Cliente - Información Financiera",
+      "credentials": {
+        "microsoftSql": {
+          "id": "[CREDENTIAL_ID]",
+          "name": "Microsoft SQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "634b3a80-fa30-4dc9-a1ce-b4f773b18fa6",
+              "name": "Nombre",
+              "value": "={{ $('Edit Fields - Formulario Web').item.json.Nombre }}",
+              "type": "string"
+            },
+            {
+              "id": "3741ebd6-6879-4e0a-b110-1a696f4e34d3",
+              "name": "Apellido",
+              "value": "={{ $('Edit Fields - Formulario Web').item.json.Apellido }}",
+              "type": "string"
+            },
+            {
+              "id": "c79079da-ec76-4148-a91a-c27a59498fcf",
+              "name": "DNI",
+              "value": "={{ $('Edit Fields - Formulario Web').item.json.DNI }}",
+              "type": "string"
+            },
+            {
+              "id": "b6b8a4a0-81b8-4487-8923-2fc9a1a2c9e2",
+              "name": "Email",
+              "value": "={{ $('Edit Fields - Formulario Web').item.json.Email }}",
+              "type": "string"
+            },
+            {
+              "id": "8e2f2841-c441-4345-af0c-0ebcf804d330",
+              "name": "Cliente",
+              "value": "={{ $('Edit Fields - Formulario Web').item.json.Cliente }}",
+              "type": "string"
+            },
+            {
+              "id": "ad358fff-72b0-4c60-89e8-4619985b41ad",
+              "name": "Canal",
+              "value": "={{ $('Edit Fields - Formulario Web').item.json.Canal }}",
+              "type": "string"
+            },
+            {
+              "id": "9fc93626-dbf2-4d49-bfd8-fcedf334105f",
+              "name": "Productos no solicitados",
+              "value": "={{ $('Edit Fields - Formulario Web').item.json[\"Productos no solicitados\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "60ee7eea-1a88-4afc-883e-92823a880a1a",
+              "name": "Cantidad de Productos",
+              "value": "={{ $('Edit Fields - Formulario Web').item.json[\"Cantidad de Productos\"] }}",
+              "type": "number"
+            },
+            {
+              "id": "c6c5e106-cd07-42fc-9422-95a969487492",
+              "name": "Promedio de Mora en dias",
+              "value": "={{ $('Edit Fields - Formulario Web').item.json[\"Promedio de Mora en dias\"] }}",
+              "type": "number"
+            },
+            {
+              "id": "2bc4965c-cf14-404f-be17-8dcb72d00eee",
+              "name": "Promedio diferencia pagos",
+              "value": "={{ $('Edit Fields - Formulario Web').item.json[\"Promedio diferencia pagos\"] }}",
+              "type": "number"
+            },
+            {
+              "id": "aed42cea-e999-4ad0-bd09-42cf43c54f94",
+              "name": "Fecha",
+              "value": "={{ $('SQL - Cliente - Información Financiera').item.json.Fecha }}",
+              "type": "string"
+            },
+            {
+              "id": "83bc7a05-3639-4d3b-a33e-07969278d4ef",
+              "name": "Situación laboral",
+              "value": "={{ $('SQL - Cliente - Información Financiera').item.json[\"Situación laboral\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "02906364-3925-4dc8-9981-ed99492e0a4a",
+              "name": "Patrimonio",
+              "value": "={{ $('SQL - Cliente - Información Financiera').item.json.Patrimonio }}",
+              "type": "string"
+            },
+            {
+              "id": "de019d6b-aa8c-4b3c-b822-b3291cefe89a",
+              "name": "Pasivos y deudas",
+              "value": "={{ $('SQL - Cliente - Información Financiera').item.json[\"Pasivos y deudas\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "554ba053-8585-45a6-b96e-3f71ea06c16c",
+              "name": "Historial crediticio",
+              "value": "={{ $('SQL - Cliente - Información Financiera').item.json[\"Historial crediticio\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "7abdc71b-5b25-41fc-b8b6-faf4f735c3c3",
+              "name": "Flujo de caja",
+              "value": "={{ $('SQL - Cliente - Información Financiera').item.json[\"Flujo de caja\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "3a047b7c-ecb8-422a-ab63-ca0a5d7c069a",
+              "name": "Indicadores financieros",
+              "value": "={{ $('SQL - Cliente - Información Financiera').item.json[\"Indicadores financieros\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "56b4c78e-e108-47af-91ba-eed7c8dc7ed9",
+              "name": "Conclusion",
+              "value": "={{ $('SQL - Cliente - Información Financiera').item.json.Conclusion }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        4288,
+        -192
+      ],
+      "id": "04d91924-7408-4e63-a003-179c7c0fbca9",
+      "name": "Edit Fields - Formulario - Cliente con informe crediicio"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7826a287-736f-4e77-8df5-706d965fe1b1",
+              "name": "Nombre",
+              "value": "={{ $('SQL Trae info de BD').item.json.Nombre }}",
+              "type": "string"
+            },
+            {
+              "id": "66b6fbbd-14fa-456f-ab91-730880a81b9d",
+              "name": "Apellido",
+              "value": "={{ $('SQL Trae info de BD').item.json.Apellido }}",
+              "type": "string"
+            },
+            {
+              "id": "e06af406-dbf1-4a03-915f-b42c80dea6b9",
+              "name": "DNI",
+              "value": "={{ $('SQL Trae info de BD').item.json.DNI }}",
+              "type": "string"
+            },
+            {
+              "id": "7d0dfb24-d1ff-4600-b742-f770b89964f3",
+              "name": "Email",
+              "value": "={{ $('Edit Fields - Email').item.json.Email }}",
+              "type": "string"
+            },
+            {
+              "id": "2cfa637d-2583-43f0-9b53-82f4a4c69bc6",
+              "name": "Asunto",
+              "value": "={{ $('Edit Fields - Email').item.json.Asunto }}",
+              "type": "string"
+            },
+            {
+              "id": "226c362b-f338-4b07-a88e-b40b43dcf1fb",
+              "name": "Mensaje",
+              "value": "={{ $('Edit Fields - Email').item.json.Mensaje }}",
+              "type": "string"
+            },
+            {
+              "id": "bb8e09a5-3419-4050-8d3e-6cfef4b6f569",
+              "name": "Canal",
+              "value": "={{ $('Edit Fields - Email').item.json.Canal }}",
+              "type": "string"
+            },
+            {
+              "id": "88dbb06e-3b42-40cc-9c09-e051fa72ccc7",
+              "name": "Cliente",
+              "value": "={{ $('Edit Fields - Email').item.json.Cliente }}",
+              "type": "string"
+            },
+            {
+              "id": "1426c554-8205-470a-b55b-178c339b714d",
+              "name": "Situación laboral",
+              "value": "={{ $('SQL - Email y Form - Información Financiera').item.json[\"Situación laboral\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "b835aef3-8bba-4708-b909-8365d5168615",
+              "name": "Patrimonio",
+              "value": "={{ $('SQL - Email y Form - Información Financiera').item.json.Patrimonio }}",
+              "type": "string"
+            },
+            {
+              "id": "534171dd-da73-458e-a25e-445a5220440f",
+              "name": "Pasivos y deudas",
+              "value": "={{ $('SQL - Email y Form - Información Financiera').item.json[\"Pasivos y deudas\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "e59e8e47-0990-4364-a2cc-192b14710087",
+              "name": "Historial crediticio",
+              "value": "={{ $('SQL - Email y Form - Información Financiera').item.json[\"Historial crediticio\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "23b6d31e-21b9-47ad-b80b-915bd11e519f",
+              "name": "Flujo de caja",
+              "value": "={{ $('SQL - Email y Form - Información Financiera').item.json[\"Flujo de caja\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "de2aacfe-cdf4-40c9-9899-ec7715aaca59",
+              "name": "Indicadores financieros",
+              "value": "={{ $('SQL - Email y Form - Información Financiera').item.json[\"Indicadores financieros\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "2f3a9793-4adc-442b-a339-999fdc0b37eb",
+              "name": "Conclusion",
+              "value": "={{ $('SQL - Email y Form - Información Financiera').item.json.Conclusion }}",
+              "type": "string"
+            },
+            {
+              "id": "f5dacaf9-2bd6-4996-b946-8b7d3352365b",
+              "name": "Informe Crediticio",
+              "value": "={{ $('SQL - Email y Form - Información Financiera').item.json[\"Informe Crediticio\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "d71ae855-baf9-44d1-9c66-4c1037edbd8f",
+              "name": "Productos",
+              "value": "={{ $('Code in JavaScript').item.json.Productos }}",
+              "type": "number"
+            },
+            {
+              "id": "b3c63194-8e01-40ce-98ce-4f90abc522e8",
+              "name": "Promedio de Mora en dias",
+              "value": "={{ $('Code in JavaScript').item.json[\"Promedio de Mora en dias\"] }}",
+              "type": "number"
+            },
+            {
+              "id": "f1c8cd96-97e3-4543-afe7-fd72bc1c0e7b",
+              "name": "Promedio diferencia pagos",
+              "value": "={{ $('Code in JavaScript').item.json[\"Promedio diferencia pagos\"] }}",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        4608,
+        96
+      ],
+      "id": "b01e2dce-4743-496b-84ff-42ff1aeca19e",
+      "name": "Edit Fields - Email - Cliente con informe crediicio1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "24f34e64-6101-47ef-a0fc-4a1c4a3d5bf6",
+              "name": "Nombre",
+              "value": "={{ $('Edit Fields - Formulario Web').item.json.Nombre }}",
+              "type": "string"
+            },
+            {
+              "id": "c72a43a2-2a6c-4c36-9999-42d7e1ca6b6c",
+              "name": "Apellido",
+              "value": "={{ $('Edit Fields - Formulario Web').item.json.Apellido }}",
+              "type": "string"
+            },
+            {
+              "id": "91174304-d59c-49f2-a960-b2c903990c28",
+              "name": "DNI",
+              "value": "={{ $('Edit Fields - Formulario Web').item.json.DNI }}",
+              "type": "string"
+            },
+            {
+              "id": "23e06692-48ab-4efb-97f3-3f992a4f6011",
+              "name": "Email",
+              "value": "={{ $('Edit Fields - Formulario Web').item.json.Email }}",
+              "type": "string"
+            },
+            {
+              "id": "c369d0cb-d5a3-41e7-aa0e-1aea6ba8f73f",
+              "name": "Cliente",
+              "value": "={{ $('Edit Fields - Formulario Web').item.json.Cliente }}",
+              "type": "string"
+            },
+            {
+              "id": "ab734a29-a0f4-4fc9-87b1-e71d6840e8f2",
+              "name": "Canal",
+              "value": "={{ $('Edit Fields - Formulario Web').item.json.Canal }}",
+              "type": "string"
+            },
+            {
+              "id": "d8893829-79ec-447d-a347-88d26f83dbc6",
+              "name": "Productos no solicitados",
+              "value": "={{ $('Edit Fields - Formulario Web').item.json[\"Productos no solicitados\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "a002bb0f-a567-4090-8f31-44f767cd696f",
+              "name": "Cantidad de Productos",
+              "value": "={{ $('Edit Fields - Formulario Web').item.json[\"Cantidad de Productos\"] }}",
+              "type": "number"
+            },
+            {
+              "id": "917c02b4-10b3-4dde-a0c2-849834892314",
+              "name": "Promedio de Mora en dias",
+              "value": "={{ $('Edit Fields - Formulario Web').item.json[\"Promedio de Mora en dias\"] }}",
+              "type": "number"
+            },
+            {
+              "id": "8aa6def3-096f-42df-adf2-a0761046a44e",
+              "name": "Promedio diferencia pagos",
+              "value": "={{ $('Edit Fields - Formulario Web').item.json[\"Promedio diferencia pagos\"] }}",
+              "type": "number"
+            },
+            {
+              "id": "efd7840f-960a-42d2-84d7-bea60d34414b",
+              "name": "Informe Crediticio",
+              "value": "={{ $json[\"Informe Crediticio\"] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        3920,
+        -32
+      ],
+      "id": "9416371a-6ac4-49ba-93f4-a6ea20b68040",
+      "name": "Edit Fields - Formulario - No Cliente con informe crediicio"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "6f554d42-3ddb-49f8-bb2c-66f4c3425501",
+              "name": "Nombre",
+              "value": "={{ $('Edit Fields - Email').item.json.Nombre }}",
+              "type": "string"
+            },
+            {
+              "id": "1a2a49b6-3b5d-4b94-9cb4-8a1fc2514e5f",
+              "name": "Asunto",
+              "value": "={{ $('Edit Fields - Email').item.json.Asunto }}",
+              "type": "string"
+            },
+            {
+              "id": "d4d2ddf1-7d55-4dcc-82bb-61c303df4c3f",
+              "name": "Email",
+              "value": "={{ $json.Email }}",
+              "type": "string"
+            },
+            {
+              "id": "22ea316a-6d13-4478-a823-729d6f734643",
+              "name": "Mensaje",
+              "value": "={{ $('Edit Fields - Email').item.json.Mensaje }}",
+              "type": "string"
+            },
+            {
+              "id": "8ac32e73-bbb5-4150-8a49-ca263ccf480c",
+              "name": "Canal",
+              "value": "={{ $('Edit Fields - Email').item.json.Canal }}",
+              "type": "string"
+            },
+            {
+              "id": "b206ce9b-74f8-41c6-a832-2d7453b8ed2f",
+              "name": "Cliente",
+              "value": "={{ $('Edit Fields - Email').item.json.Cliente }}",
+              "type": "string"
+            },
+            {
+              "id": "2ad15cad-e778-4f4a-89d4-5eb91166810c",
+              "name": "Informe Crediticio",
+              "value": "={{ $json[\"Informe Crediticio\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "5eb63cdc-b742-4a12-8223-45cc898688b1",
+              "name": "DNI",
+              "value": "={{ $('SQL Trae info de BD').item.json.DNI }}",
+              "type": "string"
+            },
+            {
+              "id": "7dfb9899-9296-47fc-8337-3fa729ba1f5f",
+              "name": "Nombre del Sistema",
+              "value": "={{ $('SQL Trae info de BD').item.json.Nombre }}",
+              "type": "string"
+            },
+            {
+              "id": "afdfc1fc-58a4-45c0-874c-3c6e768f62ff",
+              "name": "Apellido del Sistema",
+              "value": "={{ $('SQL Trae info de BD').item.json.Apellido }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        3792,
+        240
+      ],
+      "id": "d8761689-8543-4260-8005-62fce345232e",
+      "name": "Edit Fields - Email - No Cliente con informe crediicio"
+    },
+    {
+      "parameters": {
+        "content": "Agente de IA que consulta RAG",
+        "height": 80,
+        "width": 166,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        4944,
+        560
+      ],
+      "typeVersion": 1,
+      "id": "5ef6a7ef-fb8c-4733-9143-d825533d8a07",
+      "name": "Sticky Note46"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analiza la siguiente información:\n\n{\n  \"Nombre\": \"{{ $json.Nombre }}\",\n  \"Apellido\": \"{{ $json.Apellido }}\",\n  \"DNI\": \"{{ $json.DNI }}\",\n  \"Email\": \"{{ $json.Email }}\",\n  \"Cliente\": \"{{ $json.Cliente }}\",\n  \"Situación laboral\": \"{{ $json['Situación laboral'] }}\",\n  \"Patrimonio\": \"{{ $json.Patrimonio }}\",\n  \"Pasivos y deudas\": \"{{ $json['Pasivos y deudas'] }}\",\n  \"Historial crediticio\": \"{{ $json['Historial crediticio'] }}\",\n  \"Flujo de caja\": \"{{ $json['Flujo de caja'] }}\",\n  \"Indicadores financieros\": \"{{ $json['Indicadores financieros'] }}\",\n  \"Conclusión\": \"{{ $json.Conclusion }}\",\n  \"Decisión\": \"\",\n  \"Motivo\": \"\",\n  \"Riesgo\": \"\"\n}",
+        "options": {
+          "systemMessage": "Adopta el rol de analista de riesgo bancario.\n\nDebes consultar obligatoriamente la herramienta RAG para recuperar la información financiera del solicitante utilizando preferentemente:\n\n1. DNI\n2. Email\n\nNo tomes una decisión hasta haber consultado la herramienta.\n\nUna vez recuperada la información, evalúa:\n\n- Situación laboral\n- Patrimonio\n- Pasivos y deudas\n- Historial crediticio\n- Flujo de caja\n- Indicadores financieros\n- Conclusión\n\nReglas:\n\n- Si existen moras mayores a 90 días, rechazar.\n- Si el promedio mensual de deuda supera 200000, revisión manual.\n- Si no se encuentra información suficiente en el RAG, revisión manual.\n- No inventar información.\n\nVALIDACIÓN DE IDENTIDAD OBLIGATORIA:\n\n- Debes identificar al solicitante utilizando el DNI y el Email proporcionados en la solicitud.\n- Si el Email recuperado por la herramienta no coincide exactamente con el Email solicitado, descarta ese resultado.\n- Si el DNI recuperado por la herramienta no coincide exactamente con el DNI solicitado, descarta ese resultado.\n- Nunca mezcles información de distintas personas.\n- Nunca combines información proveniente de múltiples registros.\n- Utiliza únicamente el registro cuya coincidencia de DNI o Email sea exacta.\n- Si no encuentras una coincidencia exacta de DNI o Email, responde \"Revisión Manual\".\n\nReglas de decisión:\n\n- Aprobado:\n  Cuando el perfil sea favorable, no existan moras relevantes y la capacidad de pago sea adecuada.\n\n- Desaprobado:\n  Cuando existan moras mayores a 90 días, incumplimientos graves o riesgo crediticio alto.\n\n- Revisión Manual:\n  Cuando falte información o existan datos insuficientes para evaluar.\n\nLuego de analizar la información define un riesgo \"Alto\", \"Medio\" o \"Bajo\".\n\nResponder exclusivamente con JSON válido:\n\n{\n  \"Nombre\": \"\",\n  \"Apellido\": \"\",\n  \"DNI\": \"\",\n  \"Email\": \"\",\n  \"Cliente\": \"\",\n  \"Situación laboral\": \"\",\n  \"Patrimonio\": \"\",\n  \"Pasivos y deudas\": \"\",\n  \"Historial crediticio\": \"\",\n  \"Flujo de caja\": \"\",\n  \"Indicadores financieros\": \"\",\n  \"Conclusión\": \"\",\n  \"Decisión\": \"\",\n  \"Motivo\": \"\",\n  \"Riesgo\": \"\"\n}"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        4928,
+        672
+      ],
+      "id": "66597c65-68ec-4d0a-a47b-954a8c2cf9e7",
+      "name": "AI Agent - Consulta RAG"
+    },
+    {
+      "parameters": {
+        "content": "Agente de IA que tiene la información necesaria sin necesidad de consultar RAG",
+        "height": 144,
+        "width": 198,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        4944,
+        -384
+      ],
+      "typeVersion": 1,
+      "id": "48c66084-fd43-4437-b734-af2d2e049a2f",
+      "name": "Sticky Note47"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "declare @IDCliente int;\nset @IDCliente = (select ID from Clientes where Email = '{{ $json.Email }}')\n\nselect \na.[ID Producto],\nb.Producto,\navg(datediff(day, a.[Fecha de Vencimiento], a.[Fecha de Pago])) as 'Promedio de Mora en dias', \ncast(avg(a.Importe - a.[Monto de Pago]) as int) as 'Promedio diferencia pagos' \nfrom \nPago as a,\nProductos as b\nwhere a.[ID Producto] = b.[ID Producto] and a.ID = @IDCliente \ngroup by a.[ID Producto], b.Producto",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.2,
+      "position": [
+        432,
+        -304
+      ],
+      "id": "6271c3df-fa21-4fac-9dc4-fd138a3f5247",
+      "name": "SQL - Cliente - Detalle de productos y mora",
+      "credentials": {
+        "microsoftSql": {
+          "id": "[CREDENTIAL_ID]",
+          "name": "Microsoft SQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "declare @IDCliente int;\nset @IDCliente = (select ID from Clientes where Email = '{{ $('SQL Trae info de BD').item.json.Email }}')\n\nSelect \na.ID,\nb.[Tarjeta de Credito],\ncoalesce(b.[Prestamo Personal], 0) AS [Prestamo Personal],\ncoalesce(b.[Prestamo Hipotecario], 0) AS [Prestamo Hipotecario],\ncoalesce(b.[Seguro para el Auto], 0) AS [Seguro para el Auto],\ncoalesce(b.[Seguro para la Vivienda], 0) AS [Seguro para la Vivienda],\ncoalesce(b.[Seguro Personal], 0) AS [Seguro Personal],\ncoalesce(b.[Plazo Fijo], 0) AS [Plazo Fijo],\ncoalesce(b.[Fondos Comunes de Inversion], 0) AS [Fondos Comunes de Inversion]\nfrom\nClientes as a, ConsumoProductos as b \nwhere a.ID = b.ID and a.ID = @IDCliente ",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.2,
+      "position": [
+        1904,
+        -384
+      ],
+      "id": "c0fbcdee-d97f-471c-9f59-87487b5e749a",
+      "name": "Microsoft SQL",
+      "credentials": {
+        "microsoftSql": {
+          "id": "[CREDENTIAL_ID]",
+          "name": "Microsoft SQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "364a87ba-9a13-4c09-8be2-01d639fcf3f2",
+              "name": "Productos no solicitados",
+              "value": "={{ Object.keys($json)\n    .filter(key => key !== 'ID' && $json[key] === 0)\n    .join(', ') }}",
+              "type": "string"
+            },
+            {
+              "id": "00ffe369-1392-4aba-ade7-53abb0a9d749",
+              "name": "",
+              "value": "",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        2096,
+        -384
+      ],
+      "id": "82a8819a-6d10-41e1-858b-0080721684f6",
+      "name": "Edit Fields3"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "1a9ca57b-4320-4e1a-9d0a-80ec21f47789",
+              "leftValue": "={{ $json.DNI }}",
+              "rightValue": "={{ $('Edit Fields - Formulario Web').item.json.DNI }}",
+              "operator": {
+                "type": "number",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        3584,
+        -112
+      ],
+      "id": "03786d17-92f0-4277-9d13-11eed82ce3fb",
+      "name": "If Formulario Web - Informe Crediticio"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "03694647-a2dd-4e51-a3e8-598ee732c65a",
+              "name": "Nombre",
+              "value": "={{ $('Form - SQL Registro de Consulta').item.json.Nombre }}",
+              "type": "string"
+            },
+            {
+              "id": "ee32f7a7-7d40-46fd-9141-06049e0d2176",
+              "name": "Apellido",
+              "value": "={{ $('Form - SQL Registro de Consulta').item.json.Apellido }}",
+              "type": "string"
+            },
+            {
+              "id": "5effba47-3631-4aef-82c6-2be1797e2915",
+              "name": "DNI",
+              "value": "={{ $('Form - SQL Registro de Consulta').item.json.DNI }}",
+              "type": "string"
+            },
+            {
+              "id": "b4c392cd-51a2-4c41-a69d-883071560ccd",
+              "name": "Email",
+              "value": "={{ $('Form - SQL Registro de Consulta').item.json.Email }}",
+              "type": "string"
+            },
+            {
+              "id": "23fc81e0-4e65-47b6-8cdb-0dfae97f3d65",
+              "name": "Cliente",
+              "value": "={{ $('Form - SQL Registro de Consulta').item.json.Cliente }}",
+              "type": "string"
+            },
+            {
+              "id": "dba08598-c1d5-44e4-95af-e9b3d3acbfd6",
+              "name": "Canal",
+              "value": "={{ $('Form - SQL Coincidencia por email o DNI').item.json.Canal }}",
+              "type": "string"
+            },
+            {
+              "id": "21789039-a50f-4409-aa32-5a65a4f333a6",
+              "name": "Mensaje",
+              "value": "={{ $('Form - SQL Registro de Consulta').item.json.Mensaje }}",
+              "type": "string"
+            },
+            {
+              "id": "6cc39640-f737-4ca6-a77b-c4e13f1c3093",
+              "name": "Producto Solicitado",
+              "value": "={{ $('Form - SQL Registro de Consulta').item.json[\"Producto Solicitado\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "8d0f63df-3d37-47e4-b5d6-a85987cf9507",
+              "name": "Monto solicitado",
+              "value": "={{ $('Form - SQL Registro de Consulta').item.json[\"Monto solicitado\"] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        3040,
+        400
+      ],
+      "id": "49c2152d-54a8-4297-94ca-a5ac016876ba",
+      "name": "Edit Fields - Formulario Web1"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "cb433184-96f5-4b78-a4f6-dba224d25147",
+              "name": "Nombre",
+              "value": "={{ $('Edit Fields - Formulario Web1').item.json.Nombre }}",
+              "type": "string"
+            },
+            {
+              "id": "99a6a9a1-618a-4cf0-bd99-2d488c8085b8",
+              "name": "Apellido",
+              "value": "={{ $('Edit Fields - Formulario Web1').item.json.Apellido }}",
+              "type": "string"
+            },
+            {
+              "id": "61bfcb72-13c4-419f-b9a9-dd52aa2a2d2a",
+              "name": "DNI",
+              "value": "={{ $json.DNI }}",
+              "type": "string"
+            },
+            {
+              "id": "83d7e0f1-b9be-40ea-bad5-15097bb63a35",
+              "name": "Email",
+              "value": "={{ $('Edit Fields - Formulario Web1').item.json.Email }}",
+              "type": "string"
+            },
+            {
+              "id": "323dfd3c-f0c8-40a1-9dfb-04171d96b1bf",
+              "name": "Cliente",
+              "value": "={{ $('Edit Fields - Formulario Web1').item.json.Cliente }}",
+              "type": "string"
+            },
+            {
+              "id": "8af6a3d9-adac-45a6-9db1-be98720a2f34",
+              "name": "¿Qué producto desea solicitar?",
+              "value": "={{ $('On form submission1').item.json[\"¿Qué producto desea solicitar?\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "e7da7341-b9f9-4a8a-b051-d357505747b7",
+              "name": "¿Cúal es el monto límite de tarjeta o monto solicitado para un préstamo?",
+              "value": "={{ $('On form submission1').item.json[\"¿Cúal es el monto límite de tarjeta o monto solicitado para un préstamo?\"] }}",
+              "type": "number"
+            },
+            {
+              "id": "e772eb58-dfe5-4f0c-9faa-7d14b926c6d9",
+              "name": "Informe Crediticio",
+              "value": "={{ $json[\"Informe Crediticio\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "9405328a-5f4b-485c-aec9-d8b318692df5",
+              "name": "Situación laboral",
+              "value": "={{ $json[\"Situación laboral\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "c1e86c61-5b29-4082-92f2-61133bcbc466",
+              "name": "Patrimonio",
+              "value": "={{ $json.Patrimonio }}",
+              "type": "string"
+            },
+            {
+              "id": "fd3f37ea-ac38-46ff-b5b6-a87b1347e510",
+              "name": "Pasivos y deudas",
+              "value": "={{ $json[\"Pasivos y deudas\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "80c5870c-0384-4c12-9e5d-83a06dcbb721",
+              "name": "Historial crediticio",
+              "value": "={{ $json[\"Historial crediticio\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "5f146776-5980-4706-8d48-5b7ed37c6005",
+              "name": "Flujo de caja",
+              "value": "={{ $json[\"Flujo de caja\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "5862a499-b37a-44bf-92d0-ec65ffc0d381",
+              "name": "Indicadores financieros",
+              "value": "={{ $json[\"Indicadores financieros\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "8adeed52-b738-42d0-b232-996da8229002",
+              "name": "Conclusion",
+              "value": "={{ $json.Conclusion }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        3584,
+        400
+      ],
+      "id": "d14919e3-9275-48d3-9a44-598f488e9ec3",
+      "name": "Edit Fields - Formulario - No Cliente con informe crediicio1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Analiza la siguiente información: \n\nNombre: {{ $json.Nombre }}\nApellido: {{ $json.Apellido }}\nDNI: {{ $json.DNI }}\nEmail: {{ $json.Email }}\nCliente: {{ $json.Cliente }}\nCanal: {{ $json.Canal }}\nCantidad de productos actuales con la entidad: {{ $json[\"Cantidad de Productos\"] }}\nPromedio de mora en días: {{ $json[\"Promedio de Mora en dias\"] }}\nPromedio mensual de deuda: {{ $json[\"Promedio diferencia pagos\"] }}\n\nSituación laboral: {{ $json[\"Situación laboral\"] }}\nPatrimonio: {{ $json.Patrimonio }}\nPasivos y deudas: {{ $json[\"Pasivos y deudas\"] }}\nHistorial crediticio: {{ $json[\"Historial crediticio\"] }}\nFlujo de caja: {{ $json[\"Flujo de caja\"] }}\nIndicadores financieros: {{ $json[\"Indicadores financieros\"] }}\nConclusión del informe: {{ $json.Conclusion }}\n\n",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "=Adopta el rol de un analista de riesgo bancario. \n\nTu tarea es evaluar solicitudes de productos financieros utilizando exclusivamente la información recibida.\n\nDebes considerar:\n \n- Situación laboral y patrimonio\n- Pasivos, deudas e historial crediticio.\n- Flujo de caja.\n- Indicadores financieros.\n- Conclusión.\n\nReglas:\n \n- Si existen moras mayores a 90 días, rechazar.\n- Si tiene un promedio mensual de deuda mayor a 200000, solicitar revisión manual.\n- Si falta información crítica, solicitar revisión manual.\n\nLa respuesta debe entregarse en formato JSON:\n \n{\n\"Nombre\": '{{ $json.Nombre }}',\n\"Apellido\": '{{ $json.Apellido }}',\n\"DNI\": '{{ $json.DNI }}',\n\"Email\": {{ $json.Email }},\n\"Cliente\": '{{ $json.Cliente }}',\n\"Situación laboral\": '{{ $json[\"Situación laboral\"] }}',\n\"Patrimonio\": '{{ $json.Patrimonio }}',\n\"Pasivos y deudas\": '{{ $json[\"Pasivos y deudas\"] }}',\n\"Historial crediticio\": \"{{ $json[\"Historial crediticio\"] }}\",\n\"Flujo de caja\": '{{ $json[\"Flujo de caja\"] }}',\n\"Indicadores financieros\": '{{ $json[\"Indicadores financieros\"] }}',\n\"Conclusión\": '{{ $json.Conclusion }}',\n\"Decisión\": \"\",\n\"Motivo\": \"\",\n\"Riesgo\": \"\"\n}\n\nEl valor de la clave \"Revisión Manual\" debe ser \"Si\" o \"No\". \nEl valor de la clave \"Decisión\" debe ser uno de los siguientes valores: \"Aprobado\", \"Desaprobado\" o \"Revisión Manual\". \nEl valor de la clave  \"Motivo\" debe contender un resumen no debe superar los 200 caracteres.\nEl valor de la clave  \"Riesgo\" debe ser \"Alto\", \"Medio\" o \"Bajo\".\n\nIMPORTANTE:\n \nDevuelve únicamente un objeto JSON válido.\n \nNo incluyas:\n- Bloques Markdown\n- ```json\n- Explicaciones\n- Comentarios\n- Texto antes o después del JSON\n \nLa respuesta debe comenzar con { y finalizar con }.\n\nEjemplo válido:\n \n{\n\"Revisión Manual\": \"No\",\n\"Decisión\": \"Aprobado\",\n\"Motivo\": \"Cliente con buen perfil crediticio y capacidad de pago.\",\n\"Riesgo\": \"Bajo\"\n} "
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        4928,
+        -192
+      ],
+      "id": "4281dacd-1a21-4593-9cfd-53f92de04ce0",
+      "name": "AI Agent"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "IF EXISTS (\n    SELECT 1\n    FROM InformesCrediticios\n    WHERE Email = '{{ $json.Email }}'\n)\nBEGIN\n    SELECT\n        CONVERT(VARCHAR(8), CAST(Fecha AS DATETIME), 112) AS Fecha,\n        Nombre,\n        DNI,\n        Email,\n        [Situación laboral],\n        Patrimonio,\n        [Pasivos y deudas],\n        [Historial crediticio],\n        [Flujo de caja],\n        [Indicadores financieros],\n        Conclusion,\n        'Si' AS [Informe Crediticio]\n    FROM InformesCrediticios\n    WHERE Email = '{{ $json.Email }}' or DNI = '{{ $json.DNI }}'\nEND\nELSE\nBEGIN\n  SELECT\n'No' AS [Informe Crediticio],\n'{{ $json.Email }}' AS Email\n    \nEND",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.2,
+      "position": [
+        3312,
+        400
+      ],
+      "id": "95a0041b-ec30-4c37-83d5-0e1ae4e5f185",
+      "name": "SQL - Email - No Cliente - Información Financiera",
+      "credentials": {
+        "microsoftSql": {
+          "id": "[CREDENTIAL_ID]",
+          "name": "Microsoft SQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "CASOS\n\n1- Ingresa por email, no es cliente, no tiene información crediticia (Ejemplo: spam, otro) -> La AI no debe darle producto.\n2- Ingresa por email, es cliente, no tiene información crediticia (Ej: Maria, usuario@ejemplo.com) -> La IA debe evaluar\n3- Ingresa por email, no es cliente, tiene información crediticia (Ej: usuario@ejemplo.com) -> La IA debe evaluar\n4- Ingresa por email, es cliente, tiene información crediticia (Ej: usuario@ejemplo.com) -> La IA debe evaluar\n\n5- Ingresa por formulario web, no es cliente, no tiene información crediticia (Ej: Ricardo Funes, 1111111111, usuario@ejemplo.com) -> La AI no debe darle producto.\n6- Ingresa por formulario web, es cliente, no tiene información crediticia (Ej: Maria, usuario@ejemplo.com) -> La IA debe evaluar\n7- Ingresa por formulario web, no es cliente, tiene información crediticia (Ej: usuario@ejemplo.com) -> La IA debe evaluar\n8- Ingresa por formulario web, es cliente, tiene información crediticia (Ej: usuario@ejemplo.com) -> La IA debe evaluar",
+        "height": 304,
+        "width": 1190,
+        "color": "#8218BA"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        3744,
+        -768
+      ],
+      "typeVersion": 1,
+      "id": "cd913e14-fbdc-4e3c-beff-0ac1f697579b",
+      "name": "Sticky Note49"
+    },
+    {
+      "parameters": {
+        "content": "CASO 8 ok",
+        "height": 96,
+        "width": 150,
+        "color": "#8218BA"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        4256,
+        -256
+      ],
+      "typeVersion": 1,
+      "id": "fa88c0a0-1fe9-4a18-a4d9-a172738e6d90",
+      "name": "Sticky Note50"
+    },
+    {
+      "parameters": {
+        "content": "CASO 6 ok",
+        "height": 96,
+        "width": 150,
+        "color": "#8218BA"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        3888,
+        -96
+      ],
+      "typeVersion": 1,
+      "id": "c451dcff-2d56-4cb3-9ab1-0e030bf65b6f",
+      "name": "Sticky Note51"
+    },
+    {
+      "parameters": {
+        "content": "CASOS 1 ok y 2 ok",
+        "height": 96,
+        "width": 150,
+        "color": "#8218BA"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        3760,
+        176
+      ],
+      "typeVersion": 1,
+      "id": "d6217f96-7c71-4f9a-8118-bedf27cbd946",
+      "name": "Sticky Note52"
+    },
+    {
+      "parameters": {
+        "content": "CASO 5 ok y 7ok",
+        "height": 96,
+        "width": 150,
+        "color": "#8218BA"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        3552,
+        336
+      ],
+      "typeVersion": 1,
+      "id": "c1a823a0-6e74-4034-a582-0acf3b51b389",
+      "name": "Sticky Note53"
+    },
+    {
+      "parameters": {
+        "content": "CASO 3 ok",
+        "height": 96,
+        "width": 150,
+        "color": "#8218BA"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        4656,
+        256
+      ],
+      "typeVersion": 1,
+      "id": "721029d0-37fb-49a6-b997-e5a283e8adff",
+      "name": "Sticky Note54"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "2ea179a8-4f43-48fd-b41a-4879e9edba28",
+              "leftValue": "={{ $('If ¿Es cliente?').item.json.Cliente }}",
+              "rightValue": "Si",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        4160,
+        96
+      ],
+      "id": "5d4cbbb0-c19d-466e-acaa-8e4dc491842c",
+      "name": "If - ¿Es cliente y tiene productos?"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "7826a287-736f-4e77-8df5-706d965fe1b1",
+              "name": "Nombre",
+              "value": "={{ $('Edit Fields - Email').item.json.Nombre }}",
+              "type": "string"
+            },
+            {
+              "id": "7d0dfb24-d1ff-4600-b742-f770b89964f3",
+              "name": "Email",
+              "value": "={{ $('Edit Fields - Email').item.json.Email }}",
+              "type": "string"
+            },
+            {
+              "id": "2cfa637d-2583-43f0-9b53-82f4a4c69bc6",
+              "name": "Asunto",
+              "value": "={{ $('Edit Fields - Email').item.json.Asunto }}",
+              "type": "string"
+            },
+            {
+              "id": "226c362b-f338-4b07-a88e-b40b43dcf1fb",
+              "name": "Mensaje",
+              "value": "={{ $('Edit Fields - Email').item.json.Mensaje }}",
+              "type": "string"
+            },
+            {
+              "id": "bb8e09a5-3419-4050-8d3e-6cfef4b6f569",
+              "name": "Canal",
+              "value": "={{ $('Edit Fields - Email').item.json.Canal }}",
+              "type": "string"
+            },
+            {
+              "id": "88dbb06e-3b42-40cc-9c09-e051fa72ccc7",
+              "name": "Cliente",
+              "value": "={{ $('Edit Fields - Email').item.json.Cliente }}",
+              "type": "string"
+            },
+            {
+              "id": "1426c554-8205-470a-b55b-178c339b714d",
+              "name": "Situación laboral",
+              "value": "={{ $('SQL - Email y Form - Información Financiera').item.json[\"Situación laboral\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "b835aef3-8bba-4708-b909-8365d5168615",
+              "name": "Patrimonio",
+              "value": "={{ $('SQL - Email y Form - Información Financiera').item.json.Patrimonio }}",
+              "type": "string"
+            },
+            {
+              "id": "534171dd-da73-458e-a25e-445a5220440f",
+              "name": "Pasivos y deudas",
+              "value": "={{ $('SQL - Email y Form - Información Financiera').item.json[\"Pasivos y deudas\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "e59e8e47-0990-4364-a2cc-192b14710087",
+              "name": "Historial crediticio",
+              "value": "={{ $('SQL - Email y Form - Información Financiera').item.json[\"Historial crediticio\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "23b6d31e-21b9-47ad-b80b-915bd11e519f",
+              "name": "Flujo de caja",
+              "value": "={{ $('SQL - Email y Form - Información Financiera').item.json[\"Flujo de caja\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "de2aacfe-cdf4-40c9-9899-ec7715aaca59",
+              "name": "Indicadores financieros",
+              "value": "={{ $('SQL - Email y Form - Información Financiera').item.json[\"Indicadores financieros\"] }}",
+              "type": "string"
+            },
+            {
+              "id": "2f3a9793-4adc-442b-a339-999fdc0b37eb",
+              "name": "Conclusion",
+              "value": "={{ $('SQL - Email y Form - Información Financiera').item.json.Conclusion }}",
+              "type": "string"
+            },
+            {
+              "id": "f5dacaf9-2bd6-4996-b946-8b7d3352365b",
+              "name": "Informe Crediticio",
+              "value": "={{ $('SQL - Email y Form - Información Financiera').item.json[\"Informe Crediticio\"] }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        4688,
+        304
+      ],
+      "id": "15aebc9c-3af6-4cbd-b5be-1632b32e0569",
+      "name": "Edit Fields - Email - Cliente con informe crediicio"
+    },
+    {
+      "parameters": {
+        "content": "CASO 4 ok",
+        "height": 96,
+        "width": 150,
+        "color": "#8218BA"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        4576,
+        32
+      ],
+      "typeVersion": 1,
+      "id": "03c4b12f-4367-49b9-97a7-26547eade729",
+      "name": "Sticky Note55"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "2ea179a8-4f43-48fd-b41a-4879e9edba28",
+              "leftValue": "={{ $('If ¿Es cliente?').item.json.Cliente }}",
+              "rightValue": "Si",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        3952,
+        400
+      ],
+      "id": "1ea9e4dc-0962-4cc4-995a-cc9c2f5c02d0",
+      "name": "If - ¿Tiene informe crediticio?"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE [dbo].[RegistroSolicitudes]\n   SET [Procesado por IA] = CONVERT(VARCHAR(8), GETDATE(), 112)\n   WHERE \n   Email = '{{ $('If ¿Es cliente?').item.json.Email }}' and \n   Nombre = '{{ $('If ¿Es cliente?').item.json.Nombre }}' and  \n   Canal = '{{ $('If ¿Es cliente?').item.json.Canal }}' and \n   Fecha = '{{ $('If ¿Es cliente?').item.json.Fecha }}'",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.2,
+      "position": [
+        5728,
+        240
+      ],
+      "id": "edf21c12-8f69-4c58-89eb-ebd75ff72c55",
+      "name": "SQL - Cliente - Registra revisión",
+      "credentials": {
+        "microsoftSql": {
+          "id": "[CREDENTIAL_ID]",
+          "name": "Microsoft SQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE [dbo].[RegistroSolicitudes]\nSET [Aprueba IA] = '{{ $('Code in JavaScript3').item.json[\"Decisión\"] }}'\nWHERE Email = '{{ $(\"If ¿Es cliente?\").item.json.Email }}'\n  AND Nombre = '{{ $(\"If ¿Es cliente?\").item.json.Nombre }}'\n  AND Canal = '{{ $(\"If ¿Es cliente?\").item.json.Canal }}'\n  AND Fecha = '{{ $(\"If ¿Es cliente?\").item.json.Fecha }}'",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.2,
+      "position": [
+        5936,
+        240
+      ],
+      "id": "8e576501-ea72-4669-8617-f89705c25a8a",
+      "name": "SQL - Cliente - Registra aprobación o no",
+      "credentials": {
+        "microsoftSql": {
+          "id": "[CREDENTIAL_ID]",
+          "name": "Microsoft SQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "Consulta la totalidad de  productos que tiene el cliente",
+        "height": 112,
+        "width": 166,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1872,
+        -528
+      ],
+      "typeVersion": 1,
+      "id": "e7ac7954-66d6-491a-ba06-484cf6f7a697",
+      "name": "Sticky Note56"
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        4928,
+        0
+      ],
+      "id": "83267764-729b-4327-a117-edd10a9a69c0",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "[CREDENTIAL_ID]",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const texto = $json.output\n.replace(/```json/g, '')\n.replace(/```/g, '')\n.trim();\n \nreturn [{\njson: JSON.parse(texto)\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        5488,
+        240
+      ],
+      "id": "b23aaa12-7a95-41f5-9d9b-73ba51d71f14",
+      "name": "Code in JavaScript3"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "8f5d0bac-c64e-4189-bb32-a038fddb5e33",
+              "leftValue": "={{ $('Code in JavaScript3').item.json[\"Decisión\"] }}",
+              "rightValue": "Aprobado",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            },
+            {
+              "id": "cfe4911c-3601-4b8a-8cc3-84c76d14b9e3",
+              "leftValue": "={{ $('Code in JavaScript3').item.json.Riesgo }}",
+              "rightValue": "Bajo",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        6160,
+        240
+      ],
+      "id": "3e106125-f0de-49fd-9ef1-c54fded9952c",
+      "name": "If - Aprobado sin revisión humana"
+    },
+    {
+      "parameters": {
+        "operation": "sendAndWait",
+        "sendTo": "usuario@ejemplo.com",
+        "subject": "Solicitud de revisión",
+        "message": "=Se requiere revisión de la solicitud generada por:\n\nNombre: {{ $('Code in JavaScript3').item.json.Nombre }}\nApellido: {{ $('Code in JavaScript3').item.json.Apellido }}\nDNI: {{ $('Code in JavaScript3').item.json.DNI }}\nEmail: \nEl cliente: {{ $('Code in JavaScript3').item.json.Cliente }}\n\nAspectos financieros:\n\nSituación laboral: {{ $('Code in JavaScript3').item.json[\"Situación laboral\"] }}\nPatrimonio: {{ $('Code in JavaScript3').item.json.Patrimonio }}\nPasivos y deudas: {{ $('Code in JavaScript3').item.json[\"Pasivos y deudas\"] }}\nHistorial crediticio: {{ $('Code in JavaScript3').item.json[\"Historial crediticio\"] }}\nFlujo de caja: {{ $('Code in JavaScript3').item.json[\"Flujo de caja\"] }}\nIndicadores financieros: {{ $('Code in JavaScript3').item.json[\"Indicadores financieros\"] }}\nConclusiones del informe financiero: {{ $('Code in JavaScript3').item.json[\"Conclusión\"] }}\n\nEvaluación del Agente de IA\n\nSolicita revisión manual: {{ $('Code in JavaScript3').item.json[\"Revisión Manual\"] }}\nResultado del análisis: {{ $('Code in JavaScript3').item.json[\"Decisión\"] }}\nMotivo: {{ $('Code in JavaScript3').item.json.Motivo }}\nRiesgo:  {{ $('Code in JavaScript3').item.json.Riesgo }}\n\nAguardamos su análisis\n\n¡Muchas gracias!\n",
+        "approvalOptions": {
+          "values": {
+            "approvalType": "double",
+            "approveLabel": "Aprobar",
+            "disapproveLabel": "Rechazar"
+          }
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        6448,
+        400
+      ],
+      "id": "307227cb-dda7-426b-89cb-60a8dd77eb1e",
+      "name": "After IA - Solicitud de revisión manual con detalle",
+      "webhookId":"[WEBHOOK_ID]",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "[CREDENTIAL_ID]",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "usuario@ejemplo.com",
+        "subject": "Solicitud Aprobada",
+        "message": "=La siguiente solicitud fue aprobada:\n\n<p>\n<strong>Nombre</strong>: {{ $('Code in JavaScript3').item.json.Nombre }}<br>\n<strong>Apellido</strong>: {{ $('Code in JavaScript3').item.json.Apellido }}<br>\n<strong>DNI:</strong> {{ $('Code in JavaScript3').item.json.DNI }}<br>\n<strong>Email:</strong> <br>\n<strong>El cliente:</strong> {{ $('Code in JavaScript3').item.json.Cliente }}<br>\n</p>\n\n<h3>Aspectos financieros:</h3>\n\n<p>\n<strong>Situación laboral:</strong> {{ $('Code in JavaScript3').item.json[\"Situación laboral\"] }}<br>\n<strong>Patrimonio:</strong> {{ $('Code in JavaScript3').item.json.Patrimonio }}<br>\n<strong>Pasivos y deudas:</strong> {{ $('Code in JavaScript3').item.json[\"Pasivos y deudas\"] }}<br>\n<strong>Historial crediticio:</strong> {{ $('Code in JavaScript3').item.json[\"Historial crediticio\"] }}\n<strong>Flujo de caja:</strong> {{ $('Code in JavaScript3').item.json[\"Flujo de caja\"] }}<br>\n<strong>Indicadores financieros:</strong> {{ $('Code in JavaScript3').item.json[\"Indicadores financieros\"] }}\n<strong>Conclusiones del informe financiero:</strong> {{ $('Code in JavaScript3').item.json[\"Conclusión\"] }}<br>\n</p>\n\n<h3>Evaluación del Agente de IA</h3>\n\n<p>\n<strong>Solicita revisión manual:</strong> {{ $('Code in JavaScript3').item.json[\"Revisión Manual\"] }}<br>\n<strong>Resultado del análisis:</strong> {{ $('Code in JavaScript3').item.json[\"Decisión\"] }}<br>\n<strong>Motivo:</strong> {{ $('Code in JavaScript3').item.json.Motivo }}<br>\n<strong>Riesgo:</strong>  {{ $('Code in JavaScript3').item.json.Riesgo }}<br>\n</p>\n\nInicie la gestión.<br>\n\n¡Muchas gracias!<br>\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        7136,
+        224
+      ],
+      "id": "3e5f2abf-df44-4eb0-92f9-da27c839495c",
+      "name": "After IA - Aprobado",
+      "webhookId":"[WEBHOOK_ID]",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "[CREDENTIAL_ID]",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "Ajusta la información que toma del agente.",
+        "height": 80,
+        "width": 198,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        5440,
+        128
+      ],
+      "typeVersion": 1,
+      "id": "bb928e48-a592-443d-933d-3a95712f0f63",
+      "name": "Sticky Note57"
+    },
+    {
+      "parameters": {
+        "content": "Registra la fecha de revisión del Agente de AI",
+        "height": 96,
+        "width": 182,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        5680,
+        112
+      ],
+      "typeVersion": 1,
+      "id": "e87b0889-8cf6-42f5-96de-b76886079406",
+      "name": "Sticky Note58"
+    },
+    {
+      "parameters": {
+        "content": "Registra la conclusión del agente de IA",
+        "height": 96,
+        "width": 166,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        5904,
+        112
+      ],
+      "typeVersion": 1,
+      "id": "db531bbf-4c7e-4ec8-a853-1dcbc32cf03d",
+      "name": "Sticky Note59"
+    },
+    {
+      "parameters": {
+        "content": "Solicitud de revisión (aprueba o no)",
+        "height": 96,
+        "width": 166,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        6656,
+        592
+      ],
+      "typeVersion": 1,
+      "id": "64c69c93-f42c-4096-8a55-bcaac4a6e35c",
+      "name": "Sticky Note60"
+    },
+    {
+      "parameters": {
+        "content": "Envío de email para confirmar la gestión de la solicitud o se solicita revisión para aprobación o rechazo.",
+        "height": 192,
+        "width": 166,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        6416,
+        16
+      ],
+      "typeVersion": 1,
+      "id": "429db71f-ef26-465b-9a0a-70f13c461421",
+      "name": "Sticky Note61"
+    },
+    {
+      "parameters": {
+        "mode": "retrieve-as-tool",
+        "toolDescription": "Usá esta herramienta para buscar información crediticia de personas.\n\nLa búsqueda puede realizarse por:\n\n- DNI\n- Email\n\nLa herramienta contiene informes crediticios completos.\n\nSIEMPRE consultá esta herramienta antes de responder.\n\nNo respondas sin utilizar esta herramienta.\n\nLa información disponible puede incluir:\n\n- Situación laboral\n- Ingresos y patrimonio\n- Pasivos y endeudamiento\n- Historial crediticio\n- Comportamiento de pagos\n- Mora histórica\n- Flujo de caja\n- Indicadores financieros\n- Conclusiones de informes crediticios\n\nConsulta esta herramienta siempre que necesites información adicional para evaluar el riesgo de una solicitud financiera o determinar una decisión de aprobación, desaprobación o revisión manual.\n\nSi la información obtenida contradice los datos recibidos en la solicitud, prioriza la información del informe crediticio recuperado.",
+        "memoryKey": {
+          "__rl": true,
+          "value": "informe-crediticio",
+          "mode": "list"
+        },
+        "topK": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+      "typeVersion": 1.3,
+      "position": [
+        4992,
+        1024
+      ],
+      "id": "3533b268-151b-4cf2-8e8c-7a589034303e",
+      "name": "Simple Vector Store -> Consulta"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        4992,
+        1200
+      ],
+      "id": "3ed32f5e-ac01-4d14-9fd4-66b4cec5b6f0",
+      "name": "Embeddings Google Gemini1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "[CREDENTIAL_ID]",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3.5-flash-lite",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1.1,
+      "position": [
+        4928,
+        848
+      ],
+      "id": "539f4912-c12b-4037-856f-a1fd166f25c5",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "[CREDENTIAL_ID]",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "USE [Pruebas]\n\nINSERT INTO [dbo].[InformesCrediticios]\n           ([Fecha]\n           ,[Nombre]\n           ,[DNI]\n           ,[Email]\n           ,[Situación laboral]\n           ,[Patrimonio]\n           ,[Pasivos y deudas]\n           ,[Historial crediticio]\n           ,[Flujo de caja]\n           ,[Indicadores financieros]\n           ,[Conclusion])\n     VALUES\n           ('{{ $json.Fecha }}', '{{ $json.Nombre }}', {{ $json.DNI }}, '{{ $json.Email }}', '{{ $json[\"Situacion laboral\"] }}', '{{ $json.Patrimonio }}', '{{ $json[\"Pasivos y deudas\"] }}', '{{ $json[\"Historial crediticio\"] }}', '{{ $json[\"Flujo de caja\"] }}', '{{ $json[\"Indicadores financieros\"] }}', '{{ $json.Conclusion }}')",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.2,
+      "position": [
+        4384,
+        1488
+      ],
+      "id": "ec171a97-c091-4ee1-ade9-5a64158f9f65",
+      "name": "SQL - Almacenamiento de información crediticia en BD",
+      "credentials": {
+        "microsoftSql": {
+          "id": "[CREDENTIAL_ID]",
+          "name": "Microsoft SQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "sendTo": "usuario@ejemplo.com",
+        "subject": "Respuesta a su consulta",
+        "emailType": "text",
+        "message": "=¡Buenas tardes  {{ $('If ¿Es cliente?').item.json.Nombre }}!\n\nLe informamos que no es posible otorgarle en este momento el producto solicitado.\n\nSaludos cordiales,\n\nBanco Gaby",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        7136,
+        448
+      ],
+      "id": "53b4a575-f620-4c55-a0f6-e238ec94928e",
+      "name": "Send a message2",
+      "webhookId":"[WEBHOOK_ID]",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "[CREDENTIAL_ID]",
+          "name": "Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "09e15d9e-456e-4703-a462-857609cc5fe6",
+              "leftValue": "={{ $json.data.approved }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        6688,
+        400
+      ],
+      "id": "050c16d8-85ce-4d51-be2b-984a36dde9af",
+      "name": "If - Aprueba el ejecuivo el tratamiento"
+    },
+    {
+      "parameters": {
+        "content": "Aprueba la solicitud y la envía a un ejecutivo",
+        "height": 96,
+        "width": 182,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        7088,
+        96
+      ],
+      "typeVersion": 1,
+      "id": "aa102662-8bf5-46df-9ee0-4d9439fcf8dd",
+      "name": "Sticky Note62"
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "base": {
+          "__rl": true,
+          "value": "[AIRTABLE_ID]",
+          "mode": "list",
+          "cachedResultName": "RoadMap",
+          "cachedResultUrl": "https://airtable.com/[AIRTABLE_ID]"
+        },
+        "table": {
+          "__rl": true,
+          "value": "[AIRTABLE_ID]",
+          "mode": "list",
+          "cachedResultName": "Registro de Solicitudes",
+          "cachedResultUrl": "https://airtable.com/[AIRTABLE_ID]/[AIRTABLE_ID]"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ID": "={{ $json.ID }}",
+            "Celular": "={{ $json.Celular }}",
+            "Nombre": "={{ $json.Nombre }}",
+            "Apellido": "={{ $json.Apellido }}",
+            "Fecha": "={{ $json.Fecha }}",
+            "Email": "={{ $json.Email }}",
+            "Canal": "={{ $json.Canal }}",
+            "Mensaje": "={{ $json.Mensaje }}",
+            "Cliente": "={{ $json.Cliente }}",
+            "Pasa regla de negocio": "={{ $json[\"Pasa regla de negocio\"] }}",
+            "Solicitud de aprobación enviada": "={{ $json[\"Solicitud de aprobacion enviada\"] }}",
+            "Solicitud de aprobacion": "={{ $json[\"Solicitud de aprobacion\"] }}",
+            "Aprueba IA": "={{ $json[\"Aprueba IA\"] }}",
+            "Procesado por IA": "={{ $json[\"Procesado por IA\"] }}",
+            "Aprueba humano": "={{ $json[\"Aprueba humano\"] }}",
+            "Estado de solicitud": "={{ $json[\"Estado de solicitud\"] }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "ID",
+              "displayName": "ID",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Nombre",
+              "displayName": "Nombre",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Apellido",
+              "displayName": "Apellido",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Fecha",
+              "displayName": "Fecha",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Canal",
+              "displayName": "Canal",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Celular",
+              "displayName": "Celular",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Mensaje",
+              "displayName": "Mensaje",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Cliente",
+              "displayName": "Cliente",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Pasa regla de negocio",
+              "displayName": "Pasa regla de negocio",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Solicitud de aprobación enviada",
+              "displayName": "Solicitud de aprobación enviada",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Solicitud de aprobacion",
+              "displayName": "Solicitud de aprobacion",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Procesado por IA",
+              "displayName": "Procesado por IA",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Aprueba IA",
+              "displayName": "Aprueba IA",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Aprueba humano",
+              "displayName": "Aprueba humano",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Estado de solicitud",
+              "displayName": "Estado de solicitud",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        3248,
+        -832
+      ],
+      "id": "2b527444-567b-4d10-9998-3b92aaa74c89",
+      "name": "Insertar registros",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "[CREDENTIAL_ID]",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "base": {
+          "__rl": true,
+          "value": "[AIRTABLE_ID]",
+          "mode": "list",
+          "cachedResultName": "RoadMap",
+          "cachedResultUrl": "https://airtable.com/[AIRTABLE_ID]"
+        },
+        "table": {
+          "__rl": true,
+          "value": "[AIRTABLE_ID]",
+          "mode": "list",
+          "cachedResultName": "Registro de Solicitudes",
+          "cachedResultUrl": "https://airtable.com/[AIRTABLE_ID]/[AIRTABLE_ID]"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ID": "={{ $json.ID }}",
+            "Celular": "={{ $json.Celular }}",
+            "Nombre": "={{ $json.Nombre }}",
+            "Apellido": "={{ $json.Apellido }}",
+            "Fecha": "={{ $json.Fecha }}",
+            "Email": "={{ $json.Email }}",
+            "Canal": "={{ $json.Canal }}",
+            "Mensaje": "={{ $json.Mensaje }}",
+            "Cliente": "={{ $json.Cliente }}",
+            "Pasa regla de negocio": "={{ $json[\"Pasa regla de negocio\"] }}",
+            "Solicitud de aprobación enviada": "={{ $json[\"Solicitud de aprobacion enviada\"] }}",
+            "Solicitud de aprobacion": "={{ $json[\"Solicitud de aprobacion\"] }}",
+            "Procesado por IA": "={{ $json[\"Procesado por IA\"] }}",
+            "Aprueba IA": "={{ $json[\"Aprueba IA\"] }}",
+            "Aprueba humano": "={{ $json[\"Aprueba humano\"] }}",
+            "Estado de solicitud": "={{ $json[\"Estado de solicitud\"] }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "ID",
+              "displayName": "ID",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Nombre",
+              "displayName": "Nombre",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Apellido",
+              "displayName": "Apellido",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Fecha",
+              "displayName": "Fecha",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Canal",
+              "displayName": "Canal",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Celular",
+              "displayName": "Celular",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Mensaje",
+              "displayName": "Mensaje",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Cliente",
+              "displayName": "Cliente",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Pasa regla de negocio",
+              "displayName": "Pasa regla de negocio",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Solicitud de aprobación enviada",
+              "displayName": "Solicitud de aprobación enviada",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Solicitud de aprobacion",
+              "displayName": "Solicitud de aprobacion",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Procesado por IA",
+              "displayName": "Procesado por IA",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Aprueba IA",
+              "displayName": "Aprueba IA",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Aprueba humano",
+              "displayName": "Aprueba humano",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Estado de solicitud",
+              "displayName": "Estado de solicitud",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        2368,
+        736
+      ],
+      "id": "48578a3a-b882-4bd7-8aa9-46b1ce37cae5",
+      "name": "Insertar registros1",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "[CREDENTIAL_ID]",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "Insertar registros en  Airtable",
+        "height": 80,
+        "width": 182,
+        "color": "#1B7023"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        3216,
+        -944
+      ],
+      "typeVersion": 1,
+      "id": "db6bf730-0f19-48e8-b1d7-28c931b25274",
+      "name": "Sticky Note66"
+    },
+    {
+      "parameters": {
+        "content": "Insertar registros en  Airtable",
+        "height": 80,
+        "width": 166,
+        "color": "#1B7023"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2336,
+        624
+      ],
+      "typeVersion": 1,
+      "id": "1d09db0c-55ae-4d75-8563-b572e68dd126",
+      "name": "Sticky Note67"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT [ID]\n      ,[Nombre]\n      ,[Apellido]\n      ,[Fecha]\n      ,[Email]\n      ,[Canal]\n      ,[Celular]\n      ,[Mensaje]\n      ,[Cliente]\n      ,[Pasa regla de negocio]\n      ,[Solicitud de aprobacion enviada]\n      ,[Solicitud de aprobacion]\n      ,[Procesado por IA]\n      ,[Aprueba IA]\n      ,[Aprueba humano]\n      ,'No Aprobada' as [Estado de solicitud]\n  FROM [Pruebas].[dbo].[RegistroSolicitudes] \n  where Email = '{{ $('If ¿Es cliente?').item.json.Email }}' and Fecha = '{{ $('If ¿Es cliente?').item.json.Fecha }}'\n\n\n\n\n\n\n\n\n\n\n\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.2,
+      "position": [
+        2160,
+        736
+      ],
+      "id": "b2596d39-ed69-4de9-8c0e-b99ef30b0f61",
+      "name": "Microsoft SQL1",
+      "credentials": {
+        "microsoftSql": {
+          "id": "[CREDENTIAL_ID]",
+          "name": "Microsoft SQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT [ID]\n      ,[Nombre]\n      ,[Apellido]\n      ,[Fecha]\n      ,[Email]\n      ,[Canal]\n      ,[Celular]\n      ,[Mensaje]\n      ,[Cliente]\n      ,[Pasa regla de negocio]\n      ,[Solicitud de aprobacion enviada]\n      ,[Solicitud de aprobacion]\n      ,[Procesado por IA]\n      ,[Aprueba IA]\n      ,[Aprueba humano]\n      ,'No Aprobada' as [Estado de solicitud]\n  FROM [Pruebas].[dbo].[RegistroSolicitudes] \n  where Email = '{{ $('If ¿Es cliente?').item.json.Email }}' and Fecha = '{{ $('If ¿Es cliente?').item.json.Fecha }}'\n\n\n\n\n\n\n\n\n\n\n\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.2,
+      "position": [
+        3040,
+        -832
+      ],
+      "id": "047868a1-1686-4514-967c-e6824f2d078e",
+      "name": "Microsoft SQL2",
+      "credentials": {
+        "microsoftSql": {
+          "id": "[CREDENTIAL_ID]",
+          "name": "Microsoft SQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "Trae la información de la solicitud.",
+        "height": 80,
+        "width": 182,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2992,
+        -944
+      ],
+      "typeVersion": 1,
+      "id": "78a50e5b-b5de-472b-b5ce-ec3d7af5df7e",
+      "name": "Sticky Note16"
+    },
+    {
+      "parameters": {
+        "content": "Trae la información de la solicitud.",
+        "height": 80,
+        "width": 182,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2112,
+        624
+      ],
+      "typeVersion": 1,
+      "id": "50953fa5-6d60-43df-8303-537bc6e18cad",
+      "name": "Sticky Note29"
+    },
+    {
+      "parameters": {
+        "operation": "upsert",
+        "base": {
+          "__rl": true,
+          "value": "[AIRTABLE_ID]",
+          "mode": "list",
+          "cachedResultName": "RoadMap",
+          "cachedResultUrl": "https://airtable.com/[AIRTABLE_ID]"
+        },
+        "table": {
+          "__rl": true,
+          "value": "[AIRTABLE_ID]",
+          "mode": "list",
+          "cachedResultName": "Registro de Solicitudes",
+          "cachedResultUrl": "https://airtable.com/[AIRTABLE_ID]/[AIRTABLE_ID]"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "ID": "={{ $json.ID }}",
+            "Celular": "={{ $json.Celular }}",
+            "Nombre": "={{ $json.Nombre }}",
+            "Apellido": "={{ $json.Apellido }}",
+            "Fecha": "={{ $json.Fecha }}",
+            "Email": "={{ $json.Email }}",
+            "Canal": "={{ $json.Canal }}",
+            "Mensaje": "={{ $json.Mensaje }}",
+            "Cliente": "={{ $json.Cliente }}",
+            "Pasa regla de negocio": "={{ $json[\"Pasa regla de negocio\"] }}",
+            "Solicitud de aprobación enviada": "={{ $json[\"Solicitud de aprobacion enviada\"] }}",
+            "Solicitud de aprobacion": "={{ $json[\"Solicitud de aprobacion\"] }}",
+            "Procesado por IA": "={{ $json[\"Procesado por IA\"] }}",
+            "Aprueba IA": "={{ $json[\"Aprueba IA\"] }}",
+            "Aprueba humano": "={{ $json[\"Aprueba humano\"] }}",
+            "Estado de solicitud": "={{ $json[\"Estado de solicitud\"] }}"
+          },
+          "matchingColumns": [
+            "id"
+          ],
+          "schema": [
+            {
+              "id": "id",
+              "displayName": "id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": true,
+              "removed": false
+            },
+            {
+              "id": "ID",
+              "displayName": "ID",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Nombre",
+              "displayName": "Nombre",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Apellido",
+              "displayName": "Apellido",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Fecha",
+              "displayName": "Fecha",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Email",
+              "displayName": "Email",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Canal",
+              "displayName": "Canal",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Celular",
+              "displayName": "Celular",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Mensaje",
+              "displayName": "Mensaje",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Cliente",
+              "displayName": "Cliente",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Pasa regla de negocio",
+              "displayName": "Pasa regla de negocio",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Solicitud de aprobación enviada",
+              "displayName": "Solicitud de aprobación enviada",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Solicitud de aprobacion",
+              "displayName": "Solicitud de aprobacion",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Procesado por IA",
+              "displayName": "Procesado por IA",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "dateTime",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Aprueba IA",
+              "displayName": "Aprueba IA",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Aprueba humano",
+              "displayName": "Aprueba humano",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "Estado de solicitud",
+              "displayName": "Estado de solicitud",
+              "required": false,
+              "defaultMatch": false,
+              "canBeUsedToMatch": true,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.airtable",
+      "typeVersion": 2.2,
+      "position": [
+        7904,
+        224
+      ],
+      "id": "b23c9e77-497d-414f-b35e-652ba23123c6",
+      "name": "Insertar registros4",
+      "credentials": {
+        "airtableTokenApi": {
+          "id": "[CREDENTIAL_ID]",
+          "name": "Airtable Personal Access Token account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "Insertar registros en  Airtable",
+        "height": 80,
+        "width": 166,
+        "color": "#1B7023"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        7872,
+        112
+      ],
+      "typeVersion": 1,
+      "id": "b549417c-b52d-4787-afed-8005179aaf87",
+      "name": "Sticky Note68"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT [ID]\n      ,[Nombre]\n      ,[Apellido]\n      ,[Fecha]\n      ,[Email]\n      ,[Canal]\n      ,[Celular]\n      ,[Mensaje]\n      ,[Cliente]\n      ,[Pasa regla de negocio]\n      ,[Solicitud de aprobacion enviada]\n      ,[Solicitud de aprobacion]\n      ,[Procesado por IA]\n      ,[Aprueba IA]\n      ,[Aprueba humano]\n      ,[Estado de solicitud]\n  FROM [Pruebas].[dbo].[RegistroSolicitudes] \n  where Email = '{{ $('If ¿Es cliente?').item.json.Email }}' and Fecha = '{{ $('If ¿Es cliente?').item.json.Fecha }}'\n\n\n\n\n\n\n\n\n\n\n\n",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.2,
+      "position": [
+        7696,
+        224
+      ],
+      "id": "f5da3d8d-cc4b-41a1-aa7e-c47ab08de6c6",
+      "name": "Microsoft SQL4",
+      "credentials": {
+        "microsoftSql": {
+          "id": "[CREDENTIAL_ID]",
+          "name": "Microsoft SQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "Trae la información de la solicitud.",
+        "height": 80,
+        "width": 182,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        7648,
+        112
+      ],
+      "typeVersion": 1,
+      "id": "fa145f31-74b1-4fdb-848d-ff2d128444ef",
+      "name": "Sticky Note32"
+    },
+    {
+      "parameters": {
+        "content": "Solicitud rechazada por no cumplir con el perfil adecuado.",
+        "height": 112,
+        "width": 160,
+        "color": "#790003"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        7104,
+        624
+      ],
+      "typeVersion": 1,
+      "id": "e652c25a-014b-40ac-ac3c-8d3a523a28f5",
+      "name": "Sticky Note64"
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "IF EXISTS (\n    SELECT 1\n    FROM InformesCrediticios\n    WHERE Email = '{{ $json.Email }}'\n)\nBEGIN\n    SELECT\n        CONVERT(VARCHAR(8), CAST(Fecha AS DATETIME), 112) AS Fecha,\n        DNI,\n        Email,\n        [Situación laboral],\n        Patrimonio,\n        [Pasivos y deudas],\n        [Historial crediticio],\n        [Flujo de caja],\n        [Indicadores financieros],\n        Conclusion,\n        'Si' AS [Informe Crediticio]\n    FROM InformesCrediticios\n    WHERE Email = '{{ $json.Email }}'\nEND\nELSE\nBEGIN\n  SELECT\n'No' AS [Informe Crediticio],\n'{{ $json.Email }}' AS Email\n    \nEND",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.2,
+      "position": [
+        3312,
+        112
+      ],
+      "id": "5e0d57b4-cd34-47a0-84a1-d7dc084a3f6a",
+      "name": "SQL - Email y Form - Información Financiera",
+      "credentials": {
+        "microsoftSql": {
+          "id": "[CREDENTIAL_ID]",
+          "name": "Microsoft SQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE [dbo].[RegistroSolicitudes]\n   SET [Estado de solicitud] = 'Aprobada'\n   WHERE Email = '{{ $('If ¿Es cliente?').item.json.Email }}' and Nombre = '{{ $('If ¿Es cliente?').item.json.Nombre }}' and Canal = '{{ $('If ¿Es cliente?').item.json.Canal }}' and Fecha = '{{ $('If ¿Es cliente?').item.json.Fecha }}'",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.2,
+      "position": [
+        7360,
+        224
+      ],
+      "id": "1f891fff-318d-4418-9d2e-0aad73415dcf",
+      "name": "SQL - Registro análisis regla de negocio1",
+      "credentials": {
+        "microsoftSql": {
+          "id": "[CREDENTIAL_ID]",
+          "name": "Microsoft SQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE [dbo].[RegistroSolicitudes]\n   SET [Estado de solicitud] = 'No Aprobada'\n   WHERE Email = '{{ $('If ¿Es cliente?').item.json.Email }}' and Nombre = '{{ $('If ¿Es cliente?').item.json.Nombre }}' and Canal = '{{ $('If ¿Es cliente?').item.json.Canal }}' and Fecha = '{{ $('If ¿Es cliente?').item.json.Fecha }}'",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.2,
+      "position": [
+        7360,
+        448
+      ],
+      "id": "e55f8382-04db-489e-9e51-e86d0849da65",
+      "name": "SQL - Registro análisis regla de negocio2",
+      "credentials": {
+        "microsoftSql": {
+          "id": "[CREDENTIAL_ID]",
+          "name": "Microsoft SQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "UPDATE [dbo].[RegistroSolicitudes]\nSET [Estado de solicitud] = 'No Aprobada'\nWHERE Email = '{{ $(\"If ¿Es cliente?\").item.json.Email }}'\n  AND Nombre = '{{ $(\"If ¿Es cliente?\").item.json.Nombre }}'\n  AND Canal = '{{ $(\"If ¿Es cliente?\").item.json.Canal }}'\n  AND Fecha = '{{ $(\"If ¿Es cliente?\").item.json.Fecha }}'",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.microsoftSql",
+      "typeVersion": 1.2,
+      "position": [
+        1696,
+        736
+      ],
+      "id": "37832c28-abdb-41df-8404-c01a50615b2e",
+      "name": "SQL - Cliente - Registra el rechazo1",
+      "credentials": {
+        "microsoftSql": {
+          "id": "[CREDENTIAL_ID]",
+          "name": "Microsoft SQL account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "content": "Email al usuario para informarle que no cumple las condiciones para acceder a un producto.",
+        "height": 176,
+        "width": 182,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1888,
+        528
+      ],
+      "typeVersion": 1,
+      "id": "1c31e52b-570d-48b7-9395-c5dba0093248",
+      "name": "Sticky Note63"
+    },
+    {
+      "parameters": {
+        "content": "Se registra el rechazo",
+        "height": 80,
+        "width": 182,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        1664,
+        624
+      ],
+      "typeVersion": 1,
+      "id": "f4f922d3-a2d5-4871-86bc-adcfd55ed3ed",
+      "name": "Sticky Note65"
+    },
+    {
+      "parameters": {
+        "content": "Hace un update en el campo Estado de solicitud para insertar \"Aprobada\"",
+        "height": 128,
+        "width": 182,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        7312,
+        64
+      ],
+      "typeVersion": 1,
+      "id": "e747b470-3c67-4514-9215-df5ed07e8405",
+      "name": "Sticky Note70"
+    },
+    {
+      "parameters": {
+        "content": "Hace un update en el campo Estado de solicitud para insertar \"Aprobada\"",
+        "height": 128,
+        "width": 182,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        7328,
+        624
+      ],
+      "typeVersion": 1,
+      "id": "b044c8ed-b1d8-4af0-b284-31e833772fbc",
+      "name": "Sticky Note71"
+    },
+    {
+      "parameters": {
+        "content": "Se le envía un email a un ejecutivo solicitando aprobación o rechazo",
+        "width": 166,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        6416,
+        592
+      ],
+      "typeVersion": 1,
+      "id": "8ef1b498-8a0d-40d0-b74e-920aa3c0fe18",
+      "name": "Sticky Note72"
+    },
+    {
+      "parameters": {
+        "content": "Filtra los productos no solicitados por el cliente",
+        "height": 112,
+        "width": 150,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        2064,
+        -528
+      ],
+      "typeVersion": 1,
+      "id": "4e92c795-185f-45cc-89bd-85431243d333",
+      "name": "Sticky Note48"
+    },
+    {
+      "parameters": {
+        "mode": "insert",
+        "memoryKey": {
+          "__rl": true,
+          "value": "informe-crediticio",
+          "mode": "list"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStoreInMemory",
+      "typeVersion": 1.3,
+      "position": [
+        4144,
+        832
+      ],
+      "id": "ee415c24-8c7a-400d-b84b-2b5082a672ff",
+      "name": "Simple Vector Store -> Almacenamiento1"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "=archivo_pdf",
+        "options": {
+          "keepSource": "json"
+        }
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        3920,
+        832
+      ],
+      "id": "c719a151-1e9b-4c17-a8ed-dadb0ebd0180",
+      "name": "Extract from File1"
+    },
+    {
+      "parameters": {
+        "formTitle": "Carga de Documento al RAG",
+        "formDescription": "Seleccioná un PDF para agregarlo a la base de conocimiento.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Archivo PDF",
+              "fieldType": "file",
+              "fieldName": "archivo_pdf",
+              "acceptFileTypes": ".pdf",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        3696,
+        832
+      ],
+      "id": "33d796c5-046d-49cb-b94f-98647670aeff",
+      "name": "On form submission",
+      "webhookId":"[WEBHOOK_ID]"
+    },
+    {
+      "parameters": {
+        "content": "Formulario de ingreso de documentación ",
+        "height": 96,
+        "width": 150,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        3664,
+        1008
+      ],
+      "typeVersion": 1,
+      "id": "fcfd2770-69cf-45b1-9a1b-188c963a1c38",
+      "name": "Sticky Note45"
+    },
+    {
+      "parameters": {
+        "content": "Extracción de la información",
+        "height": 96,
+        "width": 150,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        3888,
+        1008
+      ],
+      "typeVersion": 1,
+      "id": "89a8ccf2-15d5-4fd1-ac72-b1d1b96b7cc0",
+      "name": "Sticky Note69"
+    },
+    {
+      "parameters": {
+        "textSplittingMode": "custom",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        4288,
+        1040
+      ],
+      "id": "057eec4c-898e-4541-929c-b4eea5203aa6",
+      "name": "Default Data Loader"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.embeddingsGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        4144,
+        1040
+      ],
+      "id": "40f577b8-ca58-452b-9a0d-bbb9536fc03c",
+      "name": "Embeddings Google Gemini3",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "[CREDENTIAL_ID]",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "separator": "[\"\\n\\n\", \"\\n\"]",
+        "chunkOverlap": 200
+      },
+      "type": "@n8n/n8n-nodes-langchain.textSplitterCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        4384,
+        1248
+      ],
+      "id": "9d7e9589-99d2-4a73-a909-ae67d6873c4b",
+      "name": "Character Text Splitter"
+    },
+    {
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "=archivo_pdf",
+        "options": {
+          "keepSource": "json"
+        }
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        3920,
+        1488
+      ],
+      "id": "0abe7f1f-f556-4f1b-9331-dd176714fd9f",
+      "name": "Extract from File2"
+    },
+    {
+      "parameters": {
+        "formTitle": "Carga de Documento al RAG",
+        "formDescription": "Seleccioná un PDF para agregarlo a la base de conocimiento.",
+        "formFields": {
+          "values": [
+            {
+              "fieldLabel": "Archivo PDF",
+              "fieldType": "file",
+              "fieldName": "archivo_pdf",
+              "acceptFileTypes": ".pdf",
+              "requiredField": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.formTrigger",
+      "typeVersion": 2.6,
+      "position": [
+        3696,
+        1488
+      ],
+      "id": "eb087dc1-5d91-4211-ab58-17fc718d5534",
+      "name": "On form submission3",
+      "webhookId":"[WEBHOOK_ID]"
+    },
+    {
+      "parameters": {
+        "content": "Formulario de ingreso de documentación ",
+        "height": 96,
+        "width": 150,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        3664,
+        1664
+      ],
+      "typeVersion": 1,
+      "id": "e712cf57-1466-49cc-8c97-f31c2bd501a9",
+      "name": "Sticky Note73"
+    },
+    {
+      "parameters": {
+        "content": "Extracción de la información",
+        "height": 96,
+        "width": 150,
+        "color": "#156A79"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        3888,
+        1664
+      ],
+      "typeVersion": 1,
+      "id": "12e25795-efa4-42c9-a35b-087538dcd791",
+      "name": "Sticky Note74"
+    },
+    {
+      "parameters": {
+        "content": "Ingreso de documento e inserción en base de datos",
+        "height": 80,
+        "width": 272,
+        "color": "#FFFF00"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        3232,
+        1488
+      ],
+      "typeVersion": 1,
+      "id": "4b68e220-4541-4bee-a02d-aec420a3a3cb",
+      "name": "Sticky Note30"
+    },
+    {
+      "parameters": {
+        "content": "Ingreso de documento para consulta RAG",
+        "height": 80,
+        "width": 272,
+        "color": "#FFFF00"
+      },
+      "type": "n8n-nodes-base.stickyNote",
+      "position": [
+        3232,
+        848
+      ],
+      "typeVersion": 1,
+      "id": "353a0d3a-8f4d-4ccc-bc6b-75d58301457d",
+      "name": "Sticky Note38"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Email - Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Microsoft SQL3": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields2": {
+      "main": [
+        [
+          {
+            "node": "If - Cliente - Ingresó por Formulario Web",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "If = Regla de negocio ok?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send message and wait for response": {
+      "main": [
+        [
+          {
+            "node": "SQL - Cliente - Registra respuesta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If ¿Es cliente?": {
+      "main": [
+        [
+          {
+            "node": "SQL Trae info de BD",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "SQL Inserta envío de autorización en la BD",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "If - Cliente - Ingresó por Formulario Web",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "SQL - Cliente - Registra el rechazo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send message and wait for response1": {
+      "main": [
+        [
+          {
+            "node": "If1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "On form submission1": {
+      "main": [
+        [
+          {
+            "node": "Form - SQL Coincidencia por email o DNI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SQL Trae info de BD": {
+      "main": [
+        [
+          {
+            "node": "SQL - Cliente - Detalle de productos y mora",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SQL Inserta envío de autorización en la BD": {
+      "main": [
+        [
+          {
+            "node": "Send message and wait for response1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SQL Inserta respuesta en la BD": {
+      "main": [
+        [
+          {
+            "node": "If - No Cliente - Ingresó por Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email - Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Email - SQL Coincidencia por email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email - SQL Coincidencia por email": {
+      "main": [
+        [
+          {
+            "node": "Email - SQL Registro de Consulta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Email - SQL Registro de Consulta": {
+      "main": [
+        [
+          {
+            "node": "If ¿Es cliente?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Form - SQL Coincidencia por email o DNI": {
+      "main": [
+        [
+          {
+            "node": "Form - SQL Registro de Consulta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Form - SQL Registro de Consulta": {
+      "main": [
+        [
+          {
+            "node": "If ¿Es cliente?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If = Regla de negocio ok?": {
+      "main": [
+        [
+          {
+            "node": "SQL - Registro análisis regla de negocio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "SQL - Cliente - Registra la solicitud",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SQL - Registro análisis regla de negocio": {
+      "main": [
+        [
+          {
+            "node": "Microsoft SQL3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If1": {
+      "main": [
+        [
+          {
+            "node": "SQL Inserta respuesta en la BD",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "SQL - Cliente - Registra el rechazo1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields - Formulario Web": {
+      "main": [
+        [
+          {
+            "node": "SQL - Cliente - Información Financiera",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields - Email": {
+      "main": [
+        [
+          {
+            "node": "SQL - Email y Form - Información Financiera",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SQL - Cliente - Registra la solicitud": {
+      "main": [
+        [
+          {
+            "node": "SQL - Cliente - Inserta envío de autorización en la BD",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SQL - Cliente - Registra respuesta": {
+      "main": [
+        [
+          {
+            "node": "Microsoft SQL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SQL - Cliente - Inserta envío de autorización en la BD": {
+      "main": [
+        [
+          {
+            "node": "Send message and wait for response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SQL - Cliente - Registra el rechazo": {
+      "main": [
+        [
+          {
+            "node": "Send a message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - Cliente - Ingresó por Formulario Web": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields - Formulario Web",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields - Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - No Cliente - Ingresó por Email": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields - Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields - Formulario Web1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "SQL - Almacenamiento de información crediticia en BD",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Email - Informe Crediticio": {
+      "main": [
+        [
+          {
+            "node": "If - ¿Es cliente y tiene productos?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields - Email - No Cliente con informe crediicio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SQL - Cliente - Información Financiera": {
+      "main": [
+        [
+          {
+            "node": "If Formulario Web - Informe Crediticio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields - Formulario - Cliente con informe crediicio": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields - Email - Cliente con informe crediicio1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields - Formulario - No Cliente con informe crediicio": {
+      "main": [
+        [
+          {
+            "node": "AI Agent - Consulta RAG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields - Email - No Cliente con informe crediicio": {
+      "main": [
+        [
+          {
+            "node": "AI Agent - Consulta RAG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SQL - Cliente - Detalle de productos y mora": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Microsoft SQL": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields3": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If Formulario Web - Informe Crediticio": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields - Formulario - Cliente con informe crediicio",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields - Formulario - No Cliente con informe crediicio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields - Formulario Web1": {
+      "main": [
+        [
+          {
+            "node": "SQL - Email - No Cliente - Información Financiera",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields - Formulario - No Cliente con informe crediicio1": {
+      "main": [
+        [
+          {
+            "node": "If - ¿Tiene informe crediticio?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SQL - Email - No Cliente - Información Financiera": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields - Formulario - No Cliente con informe crediicio1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - ¿Es cliente y tiene productos?": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields - Email - Cliente con informe crediicio1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Edit Fields - Email - Cliente con informe crediicio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields - Email - Cliente con informe crediicio": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - ¿Tiene informe crediticio?": {
+      "main": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "AI Agent - Consulta RAG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SQL - Cliente - Registra revisión": {
+      "main": [
+        [
+          {
+            "node": "SQL - Cliente - Registra aprobación o no",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SQL - Cliente - Registra aprobación o no": {
+      "main": [
+        [
+          {
+            "node": "If - Aprobado sin revisión humana",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript3": {
+      "main": [
+        [
+          {
+            "node": "SQL - Cliente - Registra revisión",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - Aprobado sin revisión humana": {
+      "main": [
+        [
+          {
+            "node": "After IA - Aprobado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "After IA - Solicitud de revisión manual con detalle",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent - Consulta RAG": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini1": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Simple Vector Store -> Consulta",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Simple Vector Store -> Consulta": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent - Consulta RAG",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent - Consulta RAG",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "After IA - Aprobado": {
+      "main": [
+        [
+          {
+            "node": "SQL - Registro análisis regla de negocio1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "After IA - Solicitud de revisión manual con detalle": {
+      "main": [
+        [
+          {
+            "node": "If - Aprueba el ejecuivo el tratamiento",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If - Aprueba el ejecuivo el tratamiento": {
+      "main": [
+        [
+          {
+            "node": "After IA - Aprobado",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Send a message2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message": {
+      "main": [
+        [
+          {
+            "node": "Microsoft SQL2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message1": {
+      "main": [
+        [
+          {
+            "node": "Microsoft SQL1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message2": {
+      "main": [
+        [
+          {
+            "node": "SQL - Registro análisis regla de negocio2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Insertar registros1": {
+      "main": [
+        []
+      ]
+    },
+    "Microsoft SQL1": {
+      "main": [
+        [
+          {
+            "node": "Insertar registros1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Microsoft SQL2": {
+      "main": [
+        [
+          {
+            "node": "Insertar registros",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Microsoft SQL4": {
+      "main": [
+        [
+          {
+            "node": "Insertar registros4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SQL - Email y Form - Información Financiera": {
+      "main": [
+        [
+          {
+            "node": "If Email - Informe Crediticio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SQL - Registro análisis regla de negocio1": {
+      "main": [
+        [
+          {
+            "node": "Microsoft SQL4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SQL - Registro análisis regla de negocio2": {
+      "main": [
+        [
+          {
+            "node": "Microsoft SQL4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SQL - Cliente - Registra el rechazo1": {
+      "main": [
+        [
+          {
+            "node": "Send a message1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File1": {
+      "main": [
+        [
+          {
+            "node": "Simple Vector Store -> Almacenamiento1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "On form submission": {
+      "main": [
+        [
+          {
+            "node": "Extract from File1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Simple Vector Store -> Almacenamiento1",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Google Gemini3": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Simple Vector Store -> Almacenamiento1",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Character Text Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "On form submission3": {
+      "main": [
+        [
+          {
+            "node": "Extract from File2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File2": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "errorWorkflow":"[WORKFLOW_ID]",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "7fdfa9ab-49fc-402c-9b04-555cd0114555",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId":"[INSTANCE_ID]"
+  },
+  "nodeGroups": [],
+  "id": "nHLMaBG84aCXE6eE",
+  "tags": []
+}
